@@ -12,28 +12,37 @@ export function Lesson311() {
         downloads and expects the matching fix.
       </Lead>
 
-      <H2>Request scaling — prefixes and parallelism</H2>
+      <H2>Request scaling — the official numbers</H2>
       <UL
         items={[
           <>
-            S3 automatically scales{" "}
-            <strong>per prefix</strong> — each prefix (a “folder path”) sustains
-            thousands of requests per second independently, so writing{" "}
-            <Code>data/2026/09/13/hh/</Code> style keys spreads load across
-            many scaled prefixes.
+            S3 automatically supports <strong>3,500 PUT/COPY/POST/DELETE
+            and 5,500 GET/HEAD requests per second per partitioned
+            prefix</strong> — and scales beyond that automatically when
+            load rises gradually. Sudden multi-thousand-RPS spikes on day
+            one are what throttle: ramp traffic, use more prefixes, or
+            contact support for a limit increase.
           </>,
           <>
-            Historical “randomize the first characters” advice is obsolete —
-            hashing helps only when keys would otherwise share one hot prefix.
+            Partition by prefix: request rates <em>aggregate per
+            prefix</em>, so <Code>logs/2026/09/13/hh/</Code>-style keys
+            spread load across many independently scaled partitions. The
+            old “randomize the first characters” advice is obsolete — S3
+            now partitions automatically — but{" "}
+            <strong>hot single objects</strong> are still throttled
+            individually.
           </>,
           <>
-            <strong>Multipart uploads</strong> parallelize large writes: parts
-            upload concurrently, retry independently, and can complete from
-            multiple connections.
+            <strong>Multipart upload constraints:</strong> part size ≥ 5 MiB
+            (except the last), up to 10,000 parts per upload. Large objects
+            should <em>always</em> use multipart — parallel parts,
+            per-part retry, resumable uploads — and S3 can require it via
+            policy.
           </>,
           <>
-            <strong>Byte-range fetches</strong> parallelize large reads —
-            request chunks of one object concurrently instead of one stream.
+            <strong>Byte-range GETs</strong> parallelize large reads;{" "}
+            <strong>S3 Select</strong> pushes filtering to S3 so only the
+            matching bytes travel the network.
           </>,
         ]}
       />
@@ -85,14 +94,37 @@ export function Lesson312() {
         tuning follows.
       </Lead>
 
-      <H2>The four volume families</H2>
+      <H2>The four volume families — with the caps the exam quotes</H2>
       <KeyTable
         head={["Type", "Best for", "Performance shape", "Watch"]}
         rows={[
-          ["gp3 (SSD)", "Boot volumes, general apps, most databases", "Baseline 3,000 IOPS / 125 MB/s, provision up to 16,000 IOPS / 1,000 MB/s independent of size", "Cheaper than gp2 at equal or better performance — the default migration"],
-          ["io2 / Block Express (SSD)", "Databases needing >16,000 IOPS, consistent sub-ms latency", "Provision to 256,000 IOPS, high durability (99.999%)", "Priciest per IOPS — provision only what the workload needs"],
-          ["st1 (HDD)", "Sequential, throughput-heavy: Kafka, logs, big data", "Throughput scales with volume size (up to 500 MB/s)", "Not for random small I/O — terrible at boot volumes"],
-          ["sc1 (HDD)", "Cold, rarely accessed data at lowest cost", "Lowest throughput", "Even stricter throughput limits — archives only"],
+          ["gp3 (SSD)", "Boot volumes, general apps, most databases", "Baseline 3,000 IOPS / 125 MB/s; provision up to 16,000 IOPS / 1,000 MB/s independent of size", "Cheaper than gp2 at equal or better performance — the default migration"],
+          ["io2 / io2 Block Express (SSD)", "Databases needing >16,000 IOPS, consistent sub-ms latency", "Provision to 256,000 IOPS, 64 TiB volumes, 99.999% durability", "Priciest per IOPS — provision only what the workload needs"],
+          ["st1 (HDD)", "Sequential, throughput-heavy: Kafka, logs, big data", "Throughput scales with volume size, up to 500 MB/s; minimum 500 GiB", "Not for random small I/O or boot volumes — latency in ms, not sub-ms"],
+          ["sc1 (HDD)", "Cold, rarely accessed data at lowest cost", "Lowest throughput (tens to low hundreds of MB/s), minimum 500 GiB", "Even stricter throughput and IOPS limits — archives only"],
+        ]}
+      />
+
+      <H2>EBS-optimized + burstable baseline — the instance side</H2>
+      <UL
+        items={[
+          <>
+            <strong>EBS-optimized</strong> instances reserve dedicated
+            bandwidth to EBS (most modern instance types enable it by
+            default) — without it, EBS shares the instance’s network
+            bandwidth with everything else and becomes the bottleneck.
+          </>,
+          <>
+            <strong>gp3 throughput baseline 125 MB/s</strong> is free;
+            provisioning beyond it costs — size the provisioned value from{" "}
+            <Code>VolumeReadBytes/VolumeWriteBytes</Code> CloudWatch math,
+            not instinct.
+          </>,
+          <>
+            <strong>Burstable baseline for gp2 legacy:</strong> 3 IOPS/GB
+            plus burst buckets — the reason gp2 “slows down” under sustained
+            load that gp3 sustains — and the migration payoff.
+          </>,
         ]}
       />
 
@@ -176,8 +208,14 @@ export function Lesson313() {
             <strong>instance type changes</strong>.
           </>,
           <>
-            It cannot detach, resize, or move — capacity is fixed by the
-            instance type.
+            It cannot detach, resize, move, or be snapshotted — capacity is
+            fixed by the instance type, so pick storage families (I3, D3,
+            Im4gn) by disk layout when scratch dominates.
+          </>,
+          <>
+            <strong>Hibernate is unsupported</strong> on instance-store
+            instance types — “stop the dev instance overnight and resume in
+            the morning” cannot use them.
           </>,
         ]}
       />
@@ -221,25 +259,35 @@ export function Lesson314() {
         latency-bound small-file work.
       </P>
 
-      <H2>Throughput mode — the bandwidth dial</H2>
+      <H2>Throughput mode — the bandwidth dial, with numbers</H2>
       <UL
         items={[
           <>
             <strong>Elastic Throughput:</strong> scales up and down
-            automatically with workload — the default recommendation for
-            unpredictable or spiky patterns (on-demand workloads, analytics,
-            container storage).
+            automatically with workload (up to multiple GB/s) — the default
+            recommendation for unpredictable or spiky patterns. You pay per
+            GB transferred; no baseline math required.
           </>,
           <>
-            <strong>Provisioned Throughput:</strong> set exact MB/s when the
-            requirement is known and constant.
+            <strong>Provisioned Throughput:</strong> reserve an exact MB/s
+            rate for constant workloads — cost is fixed regardless of use,
+            so size it from measured peaks, not guesses.
           </>,
           <>
-            <strong>Bursting Throughput:</strong> legacy mode — throughput
-            scales with file system size and accumulates burst credits.
+            <strong>Bursting Throughput (legacy):</strong> throughput scales
+            with file system <em>size</em> — 50 MB/s per TiB baseline plus
+            burst credits that accumulate during idle and spend during
+            peaks.
           </>,
         ]}
       />
+      <Callout type="warn">
+        The burst-credit trap the exam loves: a <strong>small file system
+        with heavy sustained reads exhausts its burst credits and throttles
+        to the (tiny) baseline</strong> — “NFS mount gets slower the longer
+        the batch job runs.” The answer is usually Elastic or Provisioned
+        throughput, or a larger file system.
+      </Callout>
       <Callout type="exam">
         Mapping: <strong>“shared media pipeline with wildly spiky
         throughput”</strong> → Elastic Throughput. <strong>“thousands of
