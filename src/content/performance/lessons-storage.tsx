@@ -316,7 +316,7 @@ export function Lesson315() {
       <KeyTable
         head={["File system", "Protocol / users", "Performance character", "Signature features"]}
         rows={[
-          ["FSx for Windows File Server", "SMB — Windows, AD-integrated", "SSD or HDD; up to 100s of MB/s; DFS + shadow copies", "NTFS ACLs, DFS namespaces, Group Policy — native Windows"],
+          ["FSx for Windows File Server", "SMB — Windows, AD-integrated", "SSD (GB/s range) or HDD, Multi-AZ option; DFS + shadow copies", "NTFS ACLs, DFS namespaces, Group Policy — native Windows"],
           ["FSx for Lustre", "POSIX — HPC/ML at massive scale", "100s of GB/s, millions of IOPS; S3-linked", "Scratch (ephemeral) vs Persistent (HA, replicated)"],
           ["FSx for NetApp ONTAP", "Multi-protocol: NFS + SMB", "Low-latency SSD NAS", "ONTAP features: SnapMirror, FlexClone, data tiering"],
           ["FSx for OpenZFS", "NFS — Linux workloads", "Sub-ms latency up to 1M IOPS", "ZFS snapshots/clones, migration from ZFS on-prem"],
@@ -351,8 +351,22 @@ export function Lesson315() {
       <Callout type="warn">
         Watch HDD vs SSD in options: HDD storage on FSx Windows suits
         cost-driven home directories, but performance questions (“database
-        shares”, “media rendering”) demand SSD.
+        shares”, “media rendering”) demand SSD. And watch the acronym in
+        options — it’s an <strong>SMB</strong> share on FSx for Windows,
+        never ALB (a load balancer has no business serving files).
       </Callout>
+
+      <H2>The capstone — one scenario, four answers</H2>
+      <KeyTable
+        head={["Scenario", "Answer"]}
+        rows={[
+          ["Terabytes of logs pouring in from thousands of edge locations", "S3 with partitioned prefixes + multipart uploads; S3 Express One Zone only if single-digit ms ingest latency is required"],
+          ["Production database volume pegged at the IOPS ceiling", "io2 (io2 Block Express past 64,000 IOPS); gp3 provisioning if still under 16,000"],
+          ["ML training cluster needs the S3 dataset as POSIX", "FSx for Lustre linked to the bucket, Scratch for the run, Persistent for data that must outlive it"],
+          ["Thousands of containers sharing config and media files, AZ failure must not matter", "EFS Standard with Elastic Throughput (Max I/O only if metadata parallelism is the bottleneck)"],
+          ["Windows file shares integrated with corporate AD, multi-site", "FSx for Windows Multi-AZ with DFS namespaces"],
+        ]}
+      />
     </>
   );
 }
