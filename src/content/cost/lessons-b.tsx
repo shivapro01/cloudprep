@@ -89,6 +89,42 @@ export function Lesson421() {
         full price for total freedom. Match the commitment length to how
         certain the roadmap actually is.
       </Callout>
+
+      <H2>Upfront math and exchange mechanics</H2>
+      <UL
+        items={[
+          <>
+            <strong>No upfront, partial, all upfront</strong> stack deeper
+            discounts in that order — all-upfront on a 3-year Standard RI
+            is the floor price of that capacity. But unused commitment is
+            pure waste: a 60%-utilized RI portfolio costs <em>more</em>
+            than On-Demand for the used portion.
+          </>,
+          <>
+            <strong>Convertible exchange:</strong> trade the RI’s attributes
+            (family, OS, scope) mid-term for a different convertible RI of
+            equal or greater value — the difference is trued up, the term
+            does not reset.
+          </>,
+          <>
+            <strong>Marketplace resales</strong> exist for Standard RIs, but
+            the exam tests exchanges and utilization math — a commitment
+            bought for a retiring workload is a stranded discount.
+          </>,
+        ]}
+      />
+
+      <H2>The utilization trap</H2>
+      <P>
+        Utilization and coverage pull opposite directions. Buying RI/SP
+        coverage for 100% of peak leaves troughs uncovered in value;
+        covering 70–80% of the steady baseline and letting On-Demand/Spot
+        absorb peaks is usually the cost floor. Monitor{" "}
+        <strong>utilization</strong> (am I using what I bought) and{" "}
+        <strong>coverage</strong> (how much spend is discounted) separately
+        — both below target means the wrong product, not just the wrong
+        size.
+      </P>
     </>
   );
 }
@@ -187,6 +223,49 @@ export function Lesson422() {
         keep an On-Demand fallback path for phases that can’t be
         interrupted.
       </Callout>
+
+      <H2>Price history and the ASG mix that makes Spot safe</H2>
+      <UL
+        items={[
+          <>
+            <strong>Check price history first:</strong> the Spot price
+            history API/console shows per-pool volatility — stable pools
+            (low reclaim rates) are worth more than briefly-cheap volatile
+            ones. Size the pool list from history, not just the current
+            discount.
+          </>,
+          <>
+            <strong>ASG mixed-instance policy:</strong> keep an On-Demand
+            base (e.g., 2 instances or 30% of capacity) so reclamation never
+            empties the fleet, and let Spot carry the elastic remainder.
+            Capacity-optimized prioritization picks the healthiest pools
+            first.
+          </>,
+          <>
+            <strong>Attribute-based instance selection:</strong> specify vCPU
+            and memory requirements instead of instance names — the ASG then
+            spans dozens of types automatically, which is the deepest pool
+            diversification you can buy.
+          </>,
+        ]}
+      />
+
+      <H2>EC2 hibernation prerequisites (the Spot-adjacent detail)</H2>
+      <UL
+        items={[
+          <>
+            Hibernation needs an <strong>encrypted EBS root volume</strong>{" "}
+            sized to hold RAM, plus agent support — On-Demand and Reserved
+            instances qualify; Spot hibernation exists but only preserves
+            through interruptions the reclaiming allows.
+          </>,
+          <>
+            Don’t confuse it with stop/start: hibernation preserves
+            in-memory state (open sessions, warm caches); stop/start is a
+            clean boot.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -295,6 +374,28 @@ export function Lesson423() {
         to three different waste shapes — pick by the symptom in the
         scenario.
       </Callout>
+
+      <H2>Trusted Advisor cost checks — the actual list</H2>
+      <UL
+        items={[
+          <>
+            <strong>Low-utilization EC2</strong> (under ~10% daily CPU or
+            tiny network I/O over 14 days), <strong>idle load
+            balancers</strong> (no backends or near-zero traffic),{" "}
+            <strong>unassociated Elastic IPs</strong>,{" "}
+            <strong>underutilized EBS</strong> volumes,{" "}
+            <strong>idle Redshift clusters</strong>, and{" "}
+            <strong>unassociated EIPs/RDS idle instances</strong> across the
+            board.
+          </>,
+          <>
+            <strong>Support plan gating:</strong> the full check set unlocks
+            on Business/Enterprise support; Basic sees only the service
+            limits and a few security checks. “Why isn’t this check
+            visible?” is often a support-plan question in disguise.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -349,6 +450,31 @@ export function Lesson424() {
         minutes is the hard cap; anything longer is Fargate/Batch
         territory.
       </Callout>
+
+      <H2>Concurrency has a cost side</H2>
+      <UL
+        items={[
+          <>
+            <strong>Provisioned concurrency bills while idle:</strong> you
+            pay for always-warm environments whether invoked or not. Size
+            provisioned counts to the steady baseline and let on-demand
+            scaling absorb peaks — over-provisioning the warm pool is the
+            quiet Lambda bill.
+          </>,
+          <>
+            <strong>Reserved concurrency caps cost and throughput
+            together:</strong> it throttles a runaway function’s spend (a
+            recursive-loop guard) while guaranteeing capacity for the
+            critical path.
+          </>,
+          <>
+            <strong>Recursive invocation risk:</strong> a Lambda that
+            triggers itself (S3 → Lambda → S3, SNS loops) multiplies cost
+            exponentially; reserved concurrency plus DLQs and idempotency
+            keys bound the blast radius.
+          </>,
+        ]}
+      />
 
       <H2>The worked comparison — same job, three ways</H2>
       <P>
@@ -456,6 +582,25 @@ export function Lesson425() {
         ElastiCache, OpenSearch, and NAT gateways</strong> — the data and
         network tiers keep billing 24/7. Schedule or right-size those too.
       </Callout>
+
+      <H2>Scheduler shape and RDS stop limits</H2>
+      <UL
+        items={[
+          <>
+            <strong>Instance Scheduler config:</strong> periods defined by
+            begin/end times plus weekdays (plus SSM maintenance windows for
+            patching inside the running window); schedules attach to
+            instances by tag, and opt-in beats opt-out for safety.
+          </>,
+          <>
+            <strong>RDS stop limits:</strong> a stopped RDS instance
+            auto-starts after 7 days — schedulers must restart databases
+            inside the window, and Multi-AZ + read-replica topologies stop
+            and start as units (or use Aurora Serverless v2 pausing for
+            dev/test clusters).
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -540,6 +685,29 @@ export function Lesson426() {
         (thresholds), CAD (anomalies), actions (response). The wrong answer
         is any single tool claimed to do all four.
       </Callout>
+
+      <H2>Billing alarms and shared commitments</H2>
+      <UL
+        items={[
+          <>
+            <strong>CloudWatch billing alarms</strong> fire on estimated
+            charges (us-east-1 billing metric) for simple thresholds — the
+            lightweight complement to Budgets when all you need is a page at
+            $X with no actions attached.
+          </>,
+          <>
+            <strong>RI/SP sharing in Organizations:</strong> zonal and
+            regional RIs plus Savings Plans float across member accounts
+            under consolidated billing — size commitments against the
+            organization’s aggregate steady state, not per account.
+          </>,
+          <>
+            <strong>Budgets scope to linked accounts:</strong> one budget can
+            watch the whole org, a single account, or a tag/project slice —
+            match the scope to who owns the response.
+          </>,
+        ]}
+      />
     </>
   );
 }

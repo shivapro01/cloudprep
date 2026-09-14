@@ -80,6 +80,28 @@ export function Lesson131() {
         <strong>“prevent public buckets account-wide”</strong> → Block Public
         Access.
       </Callout>
+
+      <H2>Object Ownership — who owns what gets uploaded</H2>
+      <UL
+        items={[
+          <>
+            <strong>Bucket owner enforced:</strong> the bucket owner owns
+            every object regardless of uploader — ACLs are disabled
+            entirely. The default for new buckets and the exam’s preferred
+            answer for multi-account uploads.
+          </>,
+          <>
+            <strong>Bucket owner preferred:</strong> objects stay with their
+            uploader <em>unless</em> they carry the bucket-owner-full-control
+            canned ACL — a migration stepping stone, not a destination.
+          </>,
+          <>
+            <strong>Object writer:</strong> legacy behavior where uploaders
+            keep ownership — the source of “I can’t read the file my partner
+            uploaded” incidents.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -156,6 +178,27 @@ export function Lesson132() {
         granted”</strong> → governance mode. <strong>“held until litigation
         concludes, no end date known”</strong> → legal hold.
       </Callout>
+
+      <H2>Default retention — locking without per-object calls</H2>
+      <UL
+        items={[
+          <>
+            A bucket-level <strong>default retention rule</strong> (mode +
+            period) applies automatically to every new object version — no
+            PUT-time headers required from writers.
+          </>,
+          <>
+            Per-object retention settings <strong>override the bucket
+            default</strong> but can only extend the mode’s guarantees, never
+            weaken compliance into governance.
+          </>,
+          <>
+            Default retention plus versioning gives “everything written here
+            is immutable for N days” — the compliance-bucket pattern for
+            financial and healthcare archives.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -239,6 +282,28 @@ export function Lesson133() {
           </>,
         ]}
       />
+
+      <H2>Encryption by default — EBS and RDS mechanics</H2>
+      <UL
+        items={[
+          <>
+            <strong>EBS encryption by default</strong> is a per-Region
+            account setting: every new volume and every snapshot copy
+            encrypts automatically under the chosen KMS key (AWS managed
+            unless you specify a customer managed key).
+          </>,
+          <>
+            <strong>RDS encryption</strong> is set at instance creation and
+            cannot be toggled later — encrypting an existing unencrypted
+            instance means snapshot, copy with encryption, restore.
+          </>,
+          <>
+            Automated backups, read replicas, and snapshot copies{" "}
+            <strong>inherit the source’s encryption state</strong> — an
+            encrypted primary never produces an unencrypted copy.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -309,6 +374,30 @@ export function Lesson134() {
             Direct Connect alone is private but <strong>not
             encrypted</strong> unless MACsec is enabled on supported 10/100
             Gbps dedicated connections, or a VPN runs over it.
+          </>,
+        ]}
+      />
+
+      <H2>TLS versions and cipher policies — the hardening detail</H2>
+      <UL
+        items={[
+          <>
+            Load balancers, CloudFront, and API Gateway expose{" "}
+            <strong>security policies</strong> (e.g., TLS 1.2+ only,
+            forward-secret ciphers) — compliance questions asking to
+            “disable TLS 1.0/1.1” are answered by selecting a modern
+            predefined policy, not by application code.
+          </>,
+          <>
+            <strong>End-to-end TLS</strong> (ALB HTTPS listener + HTTPS
+            target group) keeps traffic encrypted behind the balancer;
+            terminating at the ALB alone leaves the backend leg in
+            plaintext.
+          </>,
+          <>
+            Certificate rotation on listeners is hitless — swapping the ACM
+            certificate never drops the listener, so “rotate without
+            downtime” is a non-event.
           </>,
         ]}
       />

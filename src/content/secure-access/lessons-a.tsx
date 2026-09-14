@@ -106,6 +106,37 @@ export function Lesson111() {
         that is usually the trap.
       </Callout>
 
+      <H2>Instance profiles — how EC2 gets a role</H2>
+      <P>
+        An EC2 instance cannot hold a role directly. Instead the role is
+        wrapped in an <strong>instance profile</strong>, and the profile is
+        what you attach to the instance. The EC2 service then vends temporary
+        credentials to the instance metadata service, rotating them
+        automatically.
+      </P>
+      <UL
+        items={[
+          <>
+            One role per profile, one profile per instance — but the same
+            profile (and role) can attach to many instances.
+          </>,
+          <>
+            Swapping roles means swapping the profile association
+            (replace the IAM instance profile), not editing the role.
+          </>,
+          <>
+            Applications on the instance fetch credentials from instance
+            metadata — never bake access keys into AMIs or user data.
+          </>,
+        ]}
+      />
+      <Callout type="exam">
+        When a question shows an EC2 application with hardcoded access keys,
+        the fix is <strong>an instance profile with a least-privilege
+        role</strong> — and the credentials come from metadata, rotating
+        automatically.
+      </Callout>
+
       <H2>Least privilege in practice</H2>
       <P>
         Least privilege is not a one-shot design; it is a loop. Grant a working
@@ -255,6 +286,29 @@ export function Lesson112() {
         permissions not apply to this key?”
       </P>
 
+      <H2>Policy versions — the rollback mechanism</H2>
+      <P>
+        Customer managed policies keep up to <strong>five versions</strong>;
+        only the default version takes effect. Editing a policy creates a new
+        version (and deletes the oldest non-default beyond five), and you can
+        roll back by setting any stored version as default. The exam tests
+        this as “revert a bad policy change” — set the previous version as
+        default rather than rewriting JSON.
+      </P>
+      <UL
+        items={[
+          <>
+            AWS managed policies update themselves (new services, new
+            actions) — a drift source when a managed policy silently gains
+            permissions your review once approved.
+          </>,
+          <>
+            Inline policies have no versions at all — another reason shared
+            permissions belong in managed policies.
+          </>,
+        ]}
+      />
+
       <H2>Debugging denials like the exam expects</H2>
       <UL
         items={[
@@ -365,6 +419,27 @@ export function Lesson113() {
           </>,
         ]}
       />
+
+      <H2>Auditing root — what to watch</H2>
+      <UL
+        items={[
+          <>
+            The <strong>credential report’s root section</strong> shows root
+            MFA status, password age, and whether root access keys exist —
+            the fastest root audit in any account.
+          </>,
+          <>
+            CloudTrail logs root invocations with a distinctive
+            principal; an EventBridge rule on root activity feeding SNS is
+            the standard alarm.
+          </>,
+          <>
+            AWS Organizations SCPs can deny specific root actions in member
+            accounts (but never in the management account) — a ceiling even
+            the master key respects.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -447,6 +522,24 @@ export function Lesson114() {
           </>,
         ]}
       />
+
+      <H2>Assignment propagation and permission-set versioning</H2>
+      <UL
+        items={[
+          <>
+            Assignments and permission-set edits <strong>propagate
+            asynchronously</strong> to every assigned account — a
+            just-changed policy may take minutes to land everywhere, so
+            verify in the target account after sensitive changes.
+          </>,
+          <>
+            Each permission-set update creates a new provisioned role
+            version; accounts show provisioning status per assignment, and
+            failed provisions retry — “user still has old access” is usually
+            unfinished propagation, not a policy error.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -517,6 +610,27 @@ export function Lesson115() {
         application’s own APIs, a user pool is enough — adding an identity pool
         would be the wrong, over-scoped answer.
       </Callout>
+
+      <H2>Token use — which token goes where</H2>
+      <UL
+        items={[
+          <>
+            The <strong>ID token</strong> proves identity to your app
+            (profile claims); the <strong>access token</strong> authorizes
+            API calls (scopes, groups); the <strong>refresh token</strong>{" "}
+            mints new pairs without re-login.
+          </>,
+          <>
+            API Gateway <strong>Cognito authorizers validate the access
+            token</strong>, not the ID token — sending the wrong token is a
+            classic 401.
+          </>,
+          <>
+            Refresh tokens live much longer (days to years, configurable)
+            and can be revoked; access/ID tokens live about an hour.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -604,6 +718,27 @@ export function Lesson116() {
           ["One role needs to read one bucket/queue/key", "Resource policy on the target resource"],
           ["KMS-encrypted data cross-account", "Resource policy AND key policy must both allow; decrypt follows the key"],
           ["Third party must never touch IAM", "Resource policy (no ability to escalate) or a role with a permissions boundary"],
+        ]}
+      />
+
+      <H2>Role chaining — roles assuming roles</H2>
+      <UL
+        items={[
+          <>
+            A role session can assume <strong>another role</strong>, forming a
+            chain — but each hop is a fresh evaluation against that role’s
+            trust policy, and the chain is capped (one hour max per hop by
+            default session limits unless extended).
+          </>,
+          <>
+            <strong>Session policies intersect down the chain:</strong> each
+            hop can only narrow, never widen — the effective permission is
+            the intersection of every policy in the chain.
+          </>,
+          <>
+            Tags marked <strong>transitive</strong> survive hops (see the STS
+            lesson); non-transitive session tags drop at the next assumption.
+          </>,
         ]}
       />
     </>

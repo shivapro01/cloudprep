@@ -81,6 +81,29 @@ export function Lesson216() {
         gets retries and then a redrive — for “process later at your own
         pace,” the subscriber should be an SQS queue, not a flaky endpoint.
       </Callout>
+
+      <H2>Size, filter, and fan-out limits</H2>
+      <UL
+        items={[
+          <>
+            <strong>256 KB per published message</strong> (same as SQS) —
+            larger payloads use the S3-pointer pattern before publishing.
+          </>,
+          <>
+            <strong>Filter policy limits:</strong> 200 policies per topic
+            (standard), complex AND/OR nesting on attributes — but filters
+            run on attributes, never the message body.
+          </>,
+          <>
+            <strong>Fan-out scale:</strong> up to 100,000+ deliveries per
+            topic; FIFO topics cap lower with per-group ordering preserved.
+          </>,
+          <>
+            <strong>Raw message delivery</strong> skips the SNS JSON envelope
+            for SQS/HTTP subscribers that want the payload untouched.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -143,6 +166,30 @@ export function Lesson217() {
         targets in parallel without ordering guarantees — strictly ordered
         processing still needs FIFO queues or Kinesis behind the rule.
       </Callout>
+
+      <H2>Archives, retention, and cross-region buses</H2>
+      <UL
+        items={[
+          <>
+            <strong>Archives</strong> retain matched events with configurable
+            retention — replay any window to the same or new targets for
+            recovery, testing, or backfill.
+          </>,
+          <>
+            <strong>Cross-Region event buses:</strong> EventBridge supports
+            routing events to buses in other Regions (and accounts) via
+            resource policies — the multi-Region event backbone pattern.
+          </>,
+          <>
+            <strong>Schema discovery</strong> samples live events into the
+            registry — consumers generate bindings from reality, not docs.
+          </>,
+          <>
+            <strong>Dead-letter queues on rules</strong> capture failed
+            invocations per target for replay after fixes.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -228,6 +275,32 @@ export function Lesson218() {
         Lambdas into fewer states directly cuts the bill, an under-taught cost
         answer for high-volume workflows.
       </Callout>
+
+      <H2>Execution limits and callback timeouts</H2>
+      <UL
+        items={[
+          <>
+            <strong>History limits:</strong> Standard executions cap at 25,000
+            events — huge Map runs hit this before time limits, which is why
+            Distributed Map exists.
+          </>,
+          <>
+            <strong>waitForTaskToken timeouts:</strong> callbacks wait up to
+            the task timeout (max ~1 year on Standard, minutes on Express)
+            — set explicit timeouts or zombie executions linger.
+          </>,
+          <>
+            <strong>Payload caps:</strong> 256 KB state input/output (1 MB
+            with S3-backed large-payload patterns) — oversized payloads fail
+            loudly, not silently.
+          </>,
+          <>
+            <strong>Nested workflows:</strong> StartExecution from a state
+            composes workflows; child history doesn’t count against the
+            parent’s event limit.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -293,6 +366,31 @@ export function Lesson219() {
         async) and <strong>throttling 429s</strong> at Regional level (raise
         quota, buffer with SQS, or smooth at the edge with WAF rate rules).
       </Callout>
+
+      <H2>Caching behavior and the CloudFront layer</H2>
+      <UL
+        items={[
+          <>
+            <strong>API Gateway caching</strong> (REST APIs): per-stage TTL,
+            per-key invalidation, encrypted cache option — best for
+            expensive, slowly-changing responses.
+          </>,
+          <>
+            <strong>CloudFront in front of API Gateway</strong> adds edge
+            caching with geographic distribution — the two caches stack
+            (edge first, stage second).
+          </>,
+          <>
+            <strong>Cache key discipline:</strong> authorization headers and
+            API keys must <em>not</em> be part of the cache key, or one
+            user’s response serves another.
+          </>,
+          <>
+            <strong>Throttle + quota per usage plan:</strong> rate and burst
+            per API key — the “noisy neighbor” answer for multi-tenant APIs.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -369,6 +467,27 @@ export function Lesson2110() {
         application failure that ELB checks miss; deployment circuit breakers
         use them to halt a bad rollout before it completes.
       </Callout>
+
+      <H2>Service quotas and placement limits</H2>
+      <UL
+        items={[
+          <>
+            <strong>Service quotas:</strong> 1,000 services per cluster,
+            5,000 tasks per service (soft limits) — “cannot create another
+            service” questions point at quota increases, not architecture.
+          </>,
+          <>
+            <strong>Task placement limits:</strong> 100 tasks per service
+            with distinct placement constraints — spread requirements beyond
+            that need multiple services.
+          </>,
+          <>
+            <strong>Service discovery quotas:</strong> Cloud Map namespaces
+            and services per namespace have their own caps that bite in
+            microservice sprawl.
+          </>,
+        ]}
+      />
     </>
   );
 }

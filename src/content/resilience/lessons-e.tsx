@@ -71,6 +71,28 @@ export function Lesson231() {
         Zone. <strong>“protect against accidental overwrite and delete”</strong>{" "}
         → versioning (plus MFA delete for extra control).
       </Callout>
+
+      <H2>Strong consistency and suspension edge cases</H2>
+      <UL
+        items={[
+          <>
+            S3 provides <strong>strong read-after-write consistency</strong>{" "}
+            for PUTs and DELETEs — a read immediately after a write sees the
+            new object; no eventual-consistency window to design around.
+          </>,
+          <>
+            <strong>Suspending versioning</strong> stops new versions but
+            keeps existing ones — objects written while suspended get null
+            version IDs and overwrite each other, a classic “where did my
+            history go” trap.
+          </>,
+          <>
+            Versioning state changes (Enabled ↔ Suspended) require MFA when
+            MFA delete is on — an attacker with console access but no MFA
+            device can’t silently disable the undo button.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -139,6 +161,30 @@ export function Lesson232() {
         restores inherit it, and cross-Region copies re-encrypt under the
         destination key. Data never appears unencrypted in this chain.
       </Callout>
+
+      <H2>Snapshot sharing and RAID levels</H2>
+      <UL
+        items={[
+          <>
+            <strong>Sharing snapshots</strong> copies them to another account
+            (optionally re-encrypted with the recipient’s KMS key) — the
+            mechanism for cross-account AMIs and DR copies. Unencrypted
+            snapshots can be shared publicly, which is also how leaked AMIs
+            happen.
+          </>,
+          <>
+            <strong>RAID 0</strong> stripes for throughput (lose one disk,
+            lose everything); <strong>RAID 1</strong> mirrors for redundancy
+            (halves usable capacity). On EBS, RAID is a performance choice —
+            durability still comes from snapshots.
+          </>,
+          <>
+            <strong>Snapshot lifecycle gotcha:</strong> deleting a volume
+            does <em>not</em> delete its snapshots — orphaned snapshots keep
+            billing until their own lifecycle expires them.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -211,6 +257,27 @@ export function Lesson233() {
         instance type — choose the family for the disk layout, not the other
         way around.
       </Callout>
+
+      <H2>NVMe vs Xen drivers — the performance footnote</H2>
+      <UL
+        items={[
+          <>
+            Nitro instances expose EBS and instance store as{" "}
+            <strong>NVMe devices</strong> (/dev/nvme*) — modern AMIs include
+            the driver; older AMIs need the ena/nvme modules installed.
+          </>,
+          <>
+            Xen-based (previous generation) instances expose EBS as /dev/sd*
+            through paravirtual drivers with higher latency and lower
+            throughput ceilings — another reason migrations to Nitro
+            families improve storage performance for free.
+          </>,
+          <>
+            Device naming differs (/dev/sda1 requested vs /dev/nvme0n1
+            actual) — fstab by UUID avoids boot failures after migration.
+          </>,
+        ]}
+      />
     </>
   );
 }

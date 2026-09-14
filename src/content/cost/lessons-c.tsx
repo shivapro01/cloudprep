@@ -96,6 +96,27 @@ export function Lesson431() {
         load at full ACU capacity can cost <em>more</em> than provisioned.
         Serverless fits spiky/intermittent; provisioned fits steady.
       </Callout>
+
+      <H2>Backup storage pricing tiers — warm vs cold</H2>
+      <UL
+        items={[
+          <>
+            <strong>Automated backups</strong> bill at standard snapshot
+            rates for the retention window (1–35 days configurable).
+          </>,
+          <>
+            <strong>Manual snapshots</strong> persist at the same rate until
+            deleted — audit which ones still exist; forgotten manual
+            snapshots are pure storage waste.
+          </>,
+          <>
+            <strong>Export to S3</strong> (snapshot export, log exports)
+            shifts cost to S3 classes: keep queryable history in Standard,
+            age it to Glacier via lifecycle — a fraction of snapshot
+            storage for data nobody restores.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -196,6 +217,33 @@ export function Lesson432() {
         so mode changes are a monitoring-driven decision, not a guessing
         game.
       </Callout>
+
+      <H2>The GSI cost trap</H2>
+      <P>
+        Every <strong>global secondary index</strong> is a separate table
+        under the hood: it consumes its own provisioned throughput (or
+        on-demand requests) <em>plus</em> storage, and every base-table
+        write that projects attributes into the index consumes index write
+        capacity too. Three GSIs on a write-heavy table can triple the
+        write bill.
+      </P>
+      <UL
+        items={[
+          <>
+            <strong>Project only needed attributes</strong> (KEYS_ONLY or
+            INCLUDE) instead of ALL — smaller index items, cheaper writes
+            and storage.
+          </>,
+          <>
+            <strong>On-demand GSIs</strong> inherit the table’s mode —
+            spiky access on one index can dominate the bill silently.
+          </>,
+          <>
+            Audit unused GSIs with access metrics and drop them; an index
+            nobody queries is pure cost.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -291,6 +339,29 @@ export function Lesson433() {
         saving queries. Diagnose with hit-ratio metrics and TTL review
         before adding nodes.
       </Callout>
+
+      <H2>Reserved nodes and data tiering in detail</H2>
+      <UL
+        items={[
+          <>
+            <strong>Reserved nodes</strong> (ElastiCache): 1- or 3-year
+            terms, partial/full/no upfront — steady fleets save roughly
+            a third to over half versus On-Demand, but <em>only</em>
+            reserve the baseline and let On-Demand absorb peaks.
+          </>,
+          <>
+            <strong>Data tiering</strong> needs r6gd node types: SSD-backed
+            tiers hold cold keys locally at lower per-GB cost, with a
+            small latency penalty. Size from the hot working set, not
+            total data — that’s where the savings come from.
+          </>,
+          <>
+            <strong>Serverless caches</strong> bill per GB-hour stored plus
+            per ECPUs consumed — unbeatable for spiky/unknown load,
+            pricier than reserved nodes at high steady utilization.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -389,6 +460,33 @@ export function Lesson434() {
         <strong>Serverless base RPUs</strong> set a floor — intermittent
         analytics can cost less than a always-on base RPU setting.
       </Callout>
+
+      <H2>Spectrum scan math and OpenSearch Serverless</H2>
+      <UL
+        items={[
+          <>
+            <strong>Spectrum pricing:</strong> billed per terabyte scanned
+            (~$5/TB) plus the small S3 GET cost. Partition pruning and
+            columnar formats (Parquet over CSV) cut scanned bytes by
+            orders of magnitude — an unpartitioned CSV lake makes every
+            query scan everything.
+          </>,
+          <>
+            <strong>OpenSearch Serverless</strong> bills OCUs (compute
+            capacity in halves) plus S3-backed storage — no cluster
+            sizing, but sustained heavy indexing/search on huge
+            collections can exceed provisioned-domain cost. Collections
+            split into search vs time-series (log) types with different
+            OCU profiles.
+          </>,
+          <>
+            <strong>Sizing shortcut:</strong> variable/intermittent
+            search or log analytics → Serverless; steady 24/7 high-volume
+            ingest with tuned shards → provisioned domains with reserved
+            capacity.
+          </>,
+        ]}
+      />
     </>
   );
 }

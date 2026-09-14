@@ -50,6 +50,27 @@ export function Lesson234() {
         when “lowest cost shared file system” appears with no resilience
         clause — One Zone IA with lifecycle policies is the cost answer.
       </Callout>
+
+      <H2>Throughput modes and burst credits</H2>
+      <UL
+        items={[
+          <>
+            <strong>Bursting mode:</strong> baseline throughput scales with
+            file system size; unused headroom accrues as burst credits spent
+            during spikes — small file systems throttle sooner.
+          </>,
+          <>
+            <strong>Provisioned mode:</strong> pay for a fixed MB/s
+            regardless of size — predictable heavy workloads (media
+            rendering, analytics scratch) where bursting would flap.
+          </>,
+          <>
+            <strong>Elastic Throughput:</strong> automatically matches the
+            workload up or down — the default answer when the pattern is
+            unknown or spiky, at a premium per GB transferred.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -102,6 +123,26 @@ export function Lesson235() {
         ONTAP. <strong>“cheapest Windows shares for dev”</strong> → Single-AZ
         with HDD.
       </Callout>
+
+      <H2>FSx backup windows and retention</H2>
+      <UL
+        items={[
+          <>
+            <strong>Automatic daily backups</strong> run inside a configurable
+            window with a retention period you set — align the window with
+            off-peak hours to avoid I/O contention on HDD-backed systems.
+          </>,
+          <>
+            <strong>AWS Backup</strong> adds cross-Region and cross-account
+            copies plus centralized retention policies on top of the native
+            backups.
+          </>,
+          <>
+            Backups are crash-consistent file-system snapshots — restore
+            creates a new file system, never overwrites in place.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -168,6 +209,29 @@ export function Lesson236() {
         matching the RPO: continuous where minutes matter, scheduled where
         they don’t.
       </Callout>
+
+      <H2>RTO math — sizing restores against the clock</H2>
+      <UL
+        items={[
+          <>
+            <strong>RTO = detection + decision + restore + verification.</strong>{" "}
+            Restore speed depends on data size ÷ restore throughput: a 5 TiB
+            EBS snapshot restores in minutes to a warm AZ, while cross-Region
+            copies add transfer time first.
+          </>,
+          <>
+            <strong>Fast Snapshot Restore</strong> removes the lazy-loading
+            penalty (first-touch latency on restored volumes) — without it,
+            budget warm-up time into the RTO.
+          </>,
+          <>
+            <strong>Test the math:</strong> restore drills measure actual
+            elapsed time including DNS cutover and health-check pass — the
+            exam’s “will this RTO be met” questions hinge on the slowest
+            component, usually data transfer, not compute launch.
+          </>,
+        ]}
+      />
     </>
   );
 }

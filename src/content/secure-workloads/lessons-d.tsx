@@ -81,6 +81,27 @@ export function Lesson1213() {
         the exam usually rewards Secrets Manager only when rotation is
         actually possible.
       </Callout>
+
+      <H2>Cross-Region replication — the DR copy mechanics</H2>
+      <UL
+        items={[
+          <>
+            Replicated secrets land in chosen Regions as read replicas of
+            the primary — same value, same versions, readable locally during
+            a Regional outage.
+          </>,
+          <>
+            Rotation happens <strong>only in the primary Region</strong> and
+            propagates outward; applications in replica Regions keep reading
+            locally with normal latency.
+          </>,
+          <>
+            During a failover drill, <strong>promote a replica to
+            standalone</strong> — it detaches and becomes independently
+            rotatable, so cut writes to the primary first.
+          </>,
+        ]}
+      />
     </>
   );
 }

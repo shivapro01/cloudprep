@@ -92,6 +92,27 @@ export function Lesson121() {
         prove they are human without being blocked”</strong> → CAPTCHA or
         Challenge action. <strong>“DDoS at layers 3/4”</strong> → Shield, not WAF.
       </Callout>
+
+      <H2>WAF logging — proving what the firewall did</H2>
+      <UL
+        items={[
+          <>
+            Web ACLs stream detailed logs to <strong>S3, CloudWatch Logs, or
+            Kinesis Data Firehose</strong> — every evaluated request with the
+            matched rule, action taken, and request headers.
+          </>,
+          <>
+            Logs power incident forensics (“which rule blocked the partner’s
+            API calls?”) and tuning (Count-mode findings before switching a
+            rule to Block).
+          </>,
+          <>
+            <strong>Sampling and redaction:</strong> log only sampled requests
+            to control volume; mask sensitive headers (Authorization, Cookie)
+            so logs don’t become a credential leak.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -161,6 +182,28 @@ export function Lesson122() {
         teams, attack forensics, cost credits, or protecting specific ARNs —
         those are exclusively Advanced capabilities.
       </Callout>
+
+      <H2>Automatic mitigations and what Standard actually does</H2>
+      <UL
+        items={[
+          <>
+            <strong>Standard’s automatic mitigations</strong> run inline at
+            the AWS network edge — SYN/UDP flood absorption and reflection
+            scrubbing happen without any configuration or opt-in.
+          </>,
+          <>
+            <strong>Advanced adds application-layer mitigations</strong> only
+            when paired with WAF/CloudFront/Route 53 health checks — the
+            SRT can also place <strong>manual mitigations</strong> on your
+            protected resources during an active event.
+          </>,
+          <>
+            Health-based detection (Advanced) watches the CloudWatch alarms
+            you associate with a protection and treats sustained alarm
+            state as an attack signal.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -219,6 +262,28 @@ export function Lesson123() {
         GuardDuty + EventBridge + Lambda/SSM automation — GuardDuty alone never
         blocks anything.
       </Callout>
+
+      <H2>Malware Protection for S3 — scanning objects on upload</H2>
+      <UL
+        items={[
+          <>
+            Enable <strong>Malware Protection for S3</strong> on a bucket and
+            every new object is scanned automatically — no Lambda wiring, no
+            event plumbing of your own.
+          </>,
+          <>
+            Scan verdicts arrive as <strong>GuardDuty findings plus object
+            tags</strong> (clean/infected), so bucket policies and
+            applications can gate on the tag: quarantine prefixes, block
+            downloads of infected objects.
+          </>,
+          <>
+            Distinct from EBS Malware Protection (which scans volumes after
+            a finding): S3 protection is <em>preventive at upload</em>,
+            EBS protection is <em>reactive after detection</em>.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -292,6 +357,26 @@ export function Lesson124() {
         Manager or a rebuilt image. Questions frequently pair “Inspector
         reports the vulnerability” with “Patch Manager fixes it.”
       </Callout>
+
+      <H2>SBOM exports — the software bill of materials</H2>
+      <UL
+        items={[
+          <>
+            Inspector can export a <strong>CycloneDX-formatted SBOM</strong>{" "}
+            per scanned resource — the machine-readable inventory of every
+            package and version inside an instance, image, or function.
+          </>,
+          <>
+            SBOMs feed procurement and compliance reviews (“prove this image
+            contains no GPL-3.0 packages”) without re-scanning — export
+            once, answer many audits.
+          </>,
+          <>
+            Pair with ECR enhanced scanning: every pushed image gets both a
+            vulnerability verdict <em>and</em> an exportable SBOM.
+          </>,
+        ]}
+      />
     </>
   );
 }

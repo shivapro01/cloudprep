@@ -79,6 +79,29 @@ export function Lesson211() {
         extra LBs, and the exam’s “reduce cost while keeping routing” answers
         lean on listener rules.
       </Callout>
+
+      <H2>GWLB endpoints and ALB rule mechanics</H2>
+      <UL
+        items={[
+          <>
+            <strong>GWLB endpoints</strong> live in consumer VPC route tables:
+            traffic to a prefix routes to the endpoint, traverses the
+            appliance fleet, and returns — security teams inspect without
+            touching the workload VPCs’ architecture.
+          </>,
+          <>
+            <strong>ALB rule priorities:</strong> rules evaluate in priority
+            order (lowest number first) with a final default action; overlapping
+            path patterns need explicit priorities or the first match wins.
+          </>,
+          <>
+            <strong>Rule condition combos:</strong> host-header + path + query
+            string + source IP in one rule narrows precisely — the exam
+            tests “route only tenant A’s /admin from office IPs” style
+            combos.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -148,6 +171,30 @@ export function Lesson212() {
         behind one ALB, the answer is IP-type targets over Direct Connect or
         VPN — one load balancer, one URL, both fleets.
       </Callout>
+
+      <H2>NLB TLS handling and health subtleties</H2>
+      <UL
+        items={[
+          <>
+            <strong>TLS passthrough vs termination:</strong> NLB can terminate
+            TLS itself (certificates on the listener) or pass encrypted
+            traffic straight to targets — passthrough keeps end-to-end
+            encryption but hides HTTP details from the balancer.
+          </>,
+          <>
+            <strong>Health check subtlety:</strong> NLB TCP checks only prove
+            a port accepts connections; an HTTP check against a real path
+            proves the application responds. “Healthy targets, failing
+            requests” usually means TCP checks masking app failure.
+          </>,
+          <>
+            <strong>Source IP preservation</strong> is default-on for NLB
+            instance targets but requires client IP preservation settings
+            for IP targets — security groups must allow the client ranges,
+            not just the balancer.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -227,6 +274,29 @@ export function Lesson213() {
         before the morning peak”</strong> → predictive. <strong>“scale out
         more when CPU &gt; 70%, a lot more when &gt; 85%”</strong> → step scaling.
       </Callout>
+
+      <H2>ASG limits and termination policies</H2>
+      <UL
+        items={[
+          <>
+            <strong>Default limits:</strong> 200 Auto Scaling groups, 500
+            launch configurations/templates, 50,000 instances per Region
+            (all adjustable) — “cannot create another ASG” questions point
+            here.
+          </>,
+          <>
+            <strong>Termination policies</strong> pick scale-in victims:
+            default prefers AZ balance, then oldest launch template, then
+            closest-to-billing-hour — custom policies protect stateful or
+            spot-discounted members.
+          </>,
+          <>
+            <strong>Instance protection</strong> (scale-in protection)
+            exempts specific instances from scale-in termination —
+            different from termination protection on the EC2 API.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -293,6 +363,27 @@ export function Lesson214() {
         instance still bills. Use Standby for temporary removal and complete
         lifecycle actions properly.
       </Callout>
+
+      <H2>Suspended processes — the quiet ASG control</H2>
+      <UL
+        items={[
+          <>
+            Groups can <strong>suspend scaling processes</strong>
+            (Launch, Terminate, ReplaceUnhealthy, AZRebalance, AlarmNotification…)
+            individually — freezing behavior during deployments or incidents
+            without deleting the group.
+          </>,
+          <>
+            <strong>AZRebalance suspension</strong> stops automatic
+            redistribution after a recovery — useful when rebalancing would
+            churn healthy instances mid-incident.
+          </>,
+          <>
+            Suspended ReplaceUnhealthy keeps failing instances alive for
+            forensics — the exam’s “don’t terminate the evidence” answer.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -374,6 +465,32 @@ export function Lesson215() {
             <strong>Backpressure pattern:</strong> producer → queue →
             rate-limited consumer is the answer to “downstream API only
             allows N requests per second.”
+          </>,
+        ]}
+      />
+
+      <H2>Server-side details the exam loves</H2>
+      <UL
+        items={[
+          <>
+            <strong>Content-based deduplication:</strong> FIFO queues can hash
+            the message body as the dedup ID automatically — no producer
+            changes when body-uniqueness is the contract.
+          </>,
+          <>
+            <strong>Dedup scope:</strong> 5-minute dedup interval — the same
+            dedup ID sent 6 minutes later is a <em>new</em> message, not a
+            duplicate.
+          </>,
+          <>
+            <strong>Message timers vs delay queues:</strong> per-message DelaySeconds
+            (up to 15 min) overrides the queue default — mixed-latency
+            producers share one queue safely.
+          </>,
+          <>
+            <strong>Redrive details:</strong> maxReceiveCount counts
+            receives, not failures — a message received but never deleted
+            advances toward the DLQ each visibility-timeout cycle.
           </>,
         ]}
       />

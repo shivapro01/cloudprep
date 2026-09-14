@@ -76,6 +76,48 @@ export function Lesson227() {
         an incident (manual or via ARC), then back up — traffic shifts at the
         edge in seconds.
       </Callout>
+
+      <H2>Endpoint weights and client affinity</H2>
+      <UL
+        items={[
+          <>
+            <strong>Endpoint weights</strong> within a group split traffic
+            proportionally (NLB target style) — canary a new Region at 10%
+            before full cutover.
+          </>,
+          <>
+            <strong>Client affinity</strong> (source-IP stickiness) pins a
+            client to one endpoint — required for stateful protocols behind
+            the accelerator, at the cost of uneven failover spreading.
+          </>,
+          <>
+            <strong>Port overrides</strong> map listener ports to different
+            endpoint ports — one accelerator fronting services on varied
+            ports.
+          </>,
+        ]}
+      />
+
+      <H2>ARC readiness checks — proving failover will work</H2>
+      <UL
+        items={[
+          <>
+            <strong>Readiness checks</strong> continuously verify the recovery
+            environment: capacity quotas, replica lag, DNS records, IAM
+            roles, throttle limits — green means “failover would succeed
+            right now.”
+          </>,
+          <>
+            <strong>Recovery groups</strong> bundle cells (e.g., per-Region
+            stacks) plus their checks; <strong>routing controls</strong> are
+            the actual traffic switches with safety rules.
+          </>,
+          <>
+            A red readiness check is the exam’s “what do you fix before the
+            drill” answer — failover untested is failover broken.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -154,6 +196,25 @@ export function Lesson228() {
         and VMware/Cloud workloads — one plan, many services. The exam loves
         the breadth claim.
       </Callout>
+
+      <H2>Legal hold — the compliance override</H2>
+      <UL
+        items={[
+          <>
+            A <strong>legal hold</strong> freezes deletion of specific
+            recovery points regardless of retention expiry — litigation and
+            audit holds that outlive normal lifecycle.
+          </>,
+          <>
+            Holds apply per recovery point and release individually; unlike
+            Vault Lock they carry no fixed duration, only manual release.
+          </>,
+          <>
+            “Preserve these backups indefinitely pending review” is the hold
+            use case — Vault Lock handles fixed-duration immutability.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -382,6 +443,27 @@ export function Lesson2211() {
         Multi-AZ <em>cluster</em> (readable standbys). Multi-AZ answers “will
         it survive,” never “can I read from it.”
       </Callout>
+
+      <H2>Aurora backtrack window — the undo button</H2>
+      <UL
+        items={[
+          <>
+            <strong>Backtrack</strong> rewinds an Aurora MySQL cluster to a
+            prior point in time <em>in place</em> — no restore, no new
+            endpoint — for fast recovery from human error (dropped tables,
+            bad writes).
+          </>,
+          <>
+            <strong>Window up to 72 hours</strong>, configured per cluster;
+            enabling it reserves change-record storage proportional to churn.
+          </>,
+          <>
+            Backtrack pauses briefly, can’t cross major-version boundaries,
+            and isn’t a substitute for backups — it’s the “oops in the last
+            three days” tool.
+          </>,
+        ]}
+      />
     </>
   );
 }

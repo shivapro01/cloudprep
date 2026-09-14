@@ -45,11 +45,18 @@ export default function CheatsheetPage() {
           {[
             ["#numbers", "Numbers to memorize"],
             ["#fingerprints", "Service fingerprints"],
+            ["#conditions", "Condition keys"],
+            ["#auth", "Auth flows"],
+            ["#endpoints", "Endpoint picker"],
+            ["#kms", "KMS picker"],
+            ["#tls", "TLS / mTLS"],
+            ["#messaging", "Messaging picker"],
             ["#routing", "Route 53 picker"],
             ["#dr", "DR ladder"],
             ["#confusions", "Don’t confuse"],
             ["#traps", "Trap list"],
             ["#shortcuts", "Decision shortcuts"],
+            ["#examday", "Exam-day logistics"],
           ].map(([href, label]) => (
             <a
               key={href}
@@ -150,6 +157,112 @@ export default function CheatsheetPage() {
             ["ML rightsizing from utilization history", "Compute Optimizer"],
             ["Unexpected spend spike detection", "Cost Anomaly Detection"],
             ["Personalize recommendations / extract document text / speech-to-text", "Personalize / Textract / Transcribe"],
+          ]}
+        />
+
+        <h2 id="conditions" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          Condition keys — the circumstance testers
+        </h2>
+        <KeyTable
+          head={["Key", "Tests", "Classic use"]}
+          rows={[
+            ["aws:PrincipalOrgID", "Caller from my org?", "Bucket/key policy covering every org account"],
+            ["aws:ResourceOrgID", "Resource belongs to my org?", "SCP exfiltration block on S3 writes"],
+            ["aws:PrincipalIsAWSService", "Caller is an AWS service?", "Carve services out of org deny policies"],
+            ["aws:ViaService", "Called through which service?", "KMS key usable only via a named service"],
+            ["aws:SecureTransport", "TLS transport?", "S3 HTTPS-only bucket policy"],
+            ["aws:SourceVpce / aws:SourceIp", "Network path?", "VPC-endpoint or office-range pinning"],
+            ["aws:MultiFactorAuthPresent", "MFA session?", "Deny sensitive actions when false"],
+            ["aws:RequestedRegion", "Target Region?", "SCP approved-Region allow-list"],
+            ["aws:PrincipalTag / ResourceTag / RequestTag", "Tags on caller / target / request?", "ABAC matching and creation-time enforcement"],
+            ["aws:CalledVia", "Service chain that made the call?", "Attribution-gated permissions"],
+            ["kms:EncryptionContext", "Exact context match?", "Binding ciphertext to its location"],
+            ["sts:ExternalId / sts:TagSession", "Third-party proof / tag passing?", "Confused-deputy defense / ABAC chains"],
+          ]}
+        />
+
+        <h2 id="auth" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          Auth flows — who signs in how
+        </h2>
+        <KeyTable
+          head={["Need", "Answer"]}
+          rows={[
+            ["Employees into AWS accounts (corporate directory)", "IAM Identity Center + SAML/SCIM"],
+            ["Customers into my app (sign-up, social, MFA)", "Cognito user pool"],
+            ["App needs temporary AWS credentials", "Cognito identity pool"],
+            ["API Gateway JWT validation", "Cognito authorizer (access token, not ID token)"],
+            ["Custom token/header validation with caching", "Lambda authorizer (mind the TTL)"],
+            ["Machine-to-machine inside AWS", "IAM / SigV4"],
+            ["Partner API with client certificates", "Mutual TLS at the custom domain"],
+            ["Non-AWS servers calling AWS APIs", "IAM Roles Anywhere (X.509)"],
+            ["CI/CD pipelines calling AWS APIs", "OIDC federation with repo/branch conditions"],
+            ["Load balancer login offload", "ALB authenticate-cognito / authenticate-oidc actions"],
+          ]}
+        />
+
+        <h2 id="endpoints" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          Endpoint picker — free vs paid, gateway vs interface
+        </h2>
+        <KeyTable
+          head={["Need", "Answer"]}
+          rows={[
+            ["Private S3 / DynamoDB access, no NAT fees", "Gateway endpoint (free, route-table based)"],
+            ["Private STS / KMS / Secrets / ECR / SNS / SQS", "Interface endpoint (hourly + per-GB, private DNS)"],
+            ["Expose my service to other VPCs/accounts", "PrivateLink endpoint service behind an NLB"],
+            ["Lock an endpoint to specific resources", "Endpoint policy (intersects with identity policy)"],
+            ["One interface endpoint AZ serving all AZs", "Deploy per AZ instead — cross-AZ endpoint traffic bills"],
+          ]}
+        />
+
+        <h2 id="kms" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          KMS picker — key type and control
+        </h2>
+        <KeyTable
+          head={["Need", "Answer"]}
+          rows={[
+            ["Encrypt with minimal management", "AWS managed key"],
+            ["Control policy, rotation, grants, audit per key", "Customer managed key (annual auto-rotation)"],
+            ["Same logical key in many Regions, independent policies", "Multi-Region key"],
+            ["FIPS L3 single-tenant hardware custody", "CloudHSM (custom key store for KMS API)"],
+            ["Keys must never reside in AWS", "External key store (XKS)"],
+            ["Sign outside AWS / asymmetric ops", "Asymmetric KMS key (public part downloadable)"],
+            ["4 KB+ payloads via KMS", "Envelope: GenerateDataKey + local encryption"],
+            ["High-volume S3 SSE-KMS without KMS bill shock", "Bucket keys"],
+            ["Small high-write items hammering KMS", "Encryption SDK data-key caching (bounded TTL)"],
+          ]}
+        />
+
+        <h2 id="tls" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          TLS / mTLS — certificate selection
+        </h2>
+        <KeyTable
+          head={["Need", "Answer"]}
+          rows={[
+            ["Public ALB / API / CloudFront TLS, auto-renewed", "ACM public certificate (DNS validation)"],
+            ["CloudFront or Cognito hosted-UI domain", "ACM certificate in us-east-1"],
+            ["Internal service identity / mTLS", "AWS Private CA (never publicly trusted — by design)"],
+            ["Existing corporate certificate", "Import to ACM (manual re-import at renewal)"],
+            ["Client certificates at API Gateway", "Mutual TLS with truststore at the custom domain"],
+            ["Kill TLS 1.0/1.1 on a listener", "Select a modern predefined security policy"],
+          ]}
+        />
+
+        <h2 id="messaging" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          Messaging picker — queue, topic, bus, or stream
+        </h2>
+        <KeyTable
+          head={["Need", "Answer"]}
+          rows={[
+            ["Buffer + decouple, one consumer type", "SQS (standard for scale, FIFO for order+dedup)"],
+            ["One event to many subscribers", "SNS fan-out (filters per subscriber slice)"],
+            ["Route by content / schemas / replay / cross-account", "EventBridge rules (+ archive, Scheduler, Pipes)"],
+            ["Custom real-time consumers with replay", "Kinesis Data Streams (shards, KCL checkpoints)"],
+            ["Managed delivery to S3/Redshift/OpenSearch", "Kinesis Data Firehose (buffers, transforms)"],
+            ["In-stream windowed analytics", "Managed Flink"],
+            ["Kafka APIs must keep working", "MSK (Connect for integrations, Replicator for DR)"],
+            ["Steps with retries, branches, approvals", "Step Functions (callback tokens for humans)"],
+            ["Payloads over 256 KB", "S3 pointer pattern before publishing"],
+            ["Exactly-once processing semantics", "FIFO + dedup IDs (SQS/SNS) — plus idempotent consumers everywhere"],
           ]}
         />
 
@@ -389,6 +502,43 @@ export default function CheatsheetPage() {
             ["Predictable daily traffic peaks", "Predictive scaling"],
             ["Reduce EC2 costs ~20% on ARM-compatible workloads", "Graviton"],
             ["Reduce a bill whose usage is unpredictable in shape", "Savings Plans (vs RIs for fixed fleets)"],
+          ]}
+        />
+
+        <h2 id="examday" className="mt-14 border-b border-white/10 pb-2 text-xl font-bold text-white">
+          Exam-day logistics — the non-technical points that cost marks
+        </h2>
+        <UL
+          items={[
+            <>
+              <strong>65 questions, 130 minutes</strong> — roughly 2 minutes
+              per question. Flag and move on past the 3-minute mark; flagged
+              questions get the leftover time.
+            </>,
+            <>
+              <strong>Pass mark ~720/1000</strong> (scaled) — you can miss
+              roughly a quarter and still pass. Don’t burn 10 minutes on one
+              question.
+            </>,
+            <>
+              <strong>“MOST cost-effective / LEAST operational overhead”
+              is the actual question</strong> — two options are often
+              technically correct; the superlative picks the winner.
+            </>,
+            <>
+              <strong>Read the last sentence first</strong> — it tells you
+              what’s being optimized before the scenario buries it.
+            </>,
+            <>
+              <strong>Eliminate the absolutes:</strong> “always use X” and
+              “disable Y entirely” are usually wrong; AWS answers are
+              conditional.
+            </>,
+            <>
+              <strong>Multi-select counts:</strong> “select TWO/THREE” tells
+              you exactly how many — use it to eliminate single-answer
+              traps.
+            </>,
           ]}
         />
 

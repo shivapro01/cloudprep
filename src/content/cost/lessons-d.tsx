@@ -60,6 +60,28 @@ export function Lesson441() {
         VPC Flow Logs to Athena quantify exactly how much traffic each
         destination gets — the evidence that justifies the endpoint change.
       </Callout>
+
+      <H2>The full NAT bill — hourly plus per-GB</H2>
+      <UL
+        items={[
+          <>
+            NAT gateways bill <strong>two lines</strong>: an hourly charge
+            (~$0.045/hr) that accrues whether traffic flows or not, plus
+            <strong> ~$0.045 per GB processed</strong>. Ten idle gateways
+            cost ~$330/month before a single byte moves.
+          </>,
+          <>
+            One NAT per AZ is the resilience answer (AZ failure isolation),
+            but each adds its own hourly line — dev/test VPCs can often
+            share a single NAT or remove NAT entirely behind endpoints.
+          </>,
+          <>
+            A 10 TB/month pipeline through one NAT gateway pays ~$450 in
+            data processing alone — the math that makes gateway endpoints
+            an instant win on S3/DynamoDB-heavy workloads.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -115,6 +137,30 @@ export function Lesson442() {
         evidence step that turns a “transfer costs are high” complaint into
         a specific architectural fix.
       </Callout>
+
+      <H2>Private DNS and the free tiers hiding in plain sight</H2>
+      <UL
+        items={[
+          <>
+            <strong>Route 53 private hosted zones:</strong> the first 25
+            hosted zones are cheap and private zones carry no per-query
+            charge for VPC-originated lookups in many patterns — keeping
+            internal resolution inside Route 53 avoids running DNS servers
+            on EC2.
+          </>,
+          <>
+            <strong>No data-out charge for intra-AZ same-service
+            traffic</strong> in key patterns (e.g., S3 same-Region reads
+            from EC2 in the Region stay cheap) — check the transfer matrix
+            before assuming every arrow bills.
+          </>,
+          <>
+            <strong>CloudFront origin fetches from S3 are free</strong> —
+            only edge-to-viewer bytes bill, which is why CDN-fronted S3
+            beats direct S3 downloads on cost at scale.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -174,6 +220,27 @@ export function Lesson443() {
         The crossover is typically around 1–2 Gbps sustained — below it,
         VPN; above it, DX.
       </P>
+
+      <H2>Data-out rates depend on destination</H2>
+      <UL
+        items={[
+          <>
+            DX data transfer out is priced by <strong>destination
+            Region</strong>, not just volume — same-continent rates beat
+            cross-continent ones, and both beat internet egress rates.
+          </>,
+          <>
+            <strong>Public VIF traffic to S3/DynamoDB</strong> over DX
+            avoids internet transfer pricing entirely — a second DX
+            cost lever beyond the port itself.
+          </>,
+          <>
+            Budget DX as port-hours plus per-GB-by-destination, and compare
+            against VPN hourly-plus-internet-egress — the spreadsheet the
+            exam expects you to have internalized.
+          </>,
+        ]}
+      />
       <UL
         items={[
           <>
@@ -291,6 +358,27 @@ export function Lesson444() {
         touched</strong> — both levers reduce the same bill from different
         angles.
       </Callout>
+
+      <H2>Request pricing — the line everyone forgets</H2>
+      <UL
+        items={[
+          <>
+            CloudFront bills <strong>per 10,000 HTTPS requests</strong> on
+            top of per-GB transfer — APIs serving millions of tiny
+            responses can be request-heavy even when bytes are small.
+          </>,
+          <>
+            <strong>Invalidations</strong> are free for the first 1,000
+            paths per month, then billed per path — versioned filenames
+            beat frequent invalidations on cost as well as performance.
+          </>,
+          <>
+            <strong>Origin Shield</strong> adds a per-GB fee but collapses
+            duplicate origin fetches — net savings when the same objects
+            are pulled from many edges.
+          </>,
+        ]}
+      />
     </>
   );
 }

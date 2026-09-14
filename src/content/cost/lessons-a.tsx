@@ -87,8 +87,33 @@ export function Lesson411() {
             <strong>Incomplete multipart uploads</strong> bill as storage
             until aborted — a lifecycle rule closes the leak.
           </>,
+          <>
+            <strong>S3 request costs:</strong> PUT/COPY/POST/LIST and GET
+            requests are billed per thousand — trivial for humans, decisive
+            for applications making millions of small operations. Short-lived
+            objects favor fewer, larger writes (multipart) plus lifecycle
+            expiration over many tiny PUTs.
+          </>,
         ]}
       />
+
+      <H2>The annual restore-count trap</H2>
+      <P>
+        A Glacier class looks nearly free per GB until you pull data back. A
+        yearly audit that restores a full archive every year turns a
+        “$0.004/GB/month” class into a retrieval bill that dwarfs the storage
+        line — because restore volume is billed per GB <em>plus</em> per
+        request. Two questions follow: is the restore pattern monthly
+        (Instant Retrieval) or yearly (Flexible); and do you even need to
+        restore everything (partial restores, Athena over the archive,
+        or keeping a hot subset in Standard).
+      </P>
+      <Callout type="warn">
+        The trap phrasing: <strong>“archive once, restore fully every year
+        for compliance”</strong> — Flexible looks cheap per GB, but model
+        the yearly restore count before assuming. “Restore twice a year”
+        flips some archives back to Instant Retrieval.
+      </Callout>
       <Callout type="tip">
         The retention-first ordering: pick the class from{" "}
         <em>retrieval speed</em> and <em>minimum duration</em> first, then
@@ -169,6 +194,34 @@ export function Lesson412() {
         aggregation at write time to get both the tiering and the request
         cost benefits.
       </Callout>
+
+      <H2>The restore-cadence trap — when IT beats Glacier and when it doesn’t</H2>
+      <P>
+        Two buckets can hold the “same” cold data with opposite bills. An
+        Intelligent-Tiering bucket restored quarterly promotes objects back
+        to Frequent for free — zero retrieval fees, no restore requests to
+        budget. A Glacier Flexible bucket restored quarterly pays per-GB
+        retrieval plus per-request restore costs every time. The exam probes
+        this as “cheapest class for data restored every quarter”: the
+        Glacier number looks smaller per GB, but quarterly restores erase
+        the gap.
+      </P>
+      <UL
+        items={[
+          <>
+            <strong>Restored monthly or more:</strong> IT or Standard
+            wins — retrieval fees dominate Glacier math.
+          </>,
+          <>
+            <strong>Restored yearly or never:</strong> Flexible/Deep Archive
+            wins — storage dominates.
+          </>,
+          <>
+            <strong>Unpredictable cadence:</strong> IT wins by construction —
+            the free promotion absorbs any pattern including surprises.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -236,6 +289,27 @@ export function Lesson413() {
           ["Snapshot backlog growing", "Lifecycle retention + delete unreferenced snapshots"],
           ["Compliance copies never restored", "Archive tier"],
           ["Orphaned volumes after instance deletion", "Find unattached volumes, remove"],
+        ]}
+      />
+
+      <H2>st1/sc1 migration path and gp2 burst credits</H2>
+      <UL
+        items={[
+          <>
+            <strong>st1 → gp3/sc1 migration:</strong> st1 fits sequential
+            throughput-heavy workloads (Kafka, logs). When the pattern turns
+            random or latency-sensitive, migrate to gp3; when the data goes
+            cold enough to abandon throughput, sc1 (or EBS snapshots in S3)
+            is the floor.
+          </>,
+          <>
+            <strong>gp2 burst credits:</strong> gp2 volumes earn IOPS credits
+            while idle and spend them under load — a sustained workload
+            drains the bucket and drops to baseline 3 IOPS/GiB. That’s the
+            real cost story: gp2 <em>looks</em> cheaper until the workload
+            outgrows idle bursts, then gp3’s provisioned IOPS are both faster
+            and cheaper.
+          </>,
         ]}
       />
       <Callout type="exam">
@@ -345,6 +419,30 @@ export function Lesson414() {
         One Zone file system transitions into One Zone IA only. Standard and
         One Zone classes can’t be mixed inside one EFS file system.
       </Callout>
+
+      <H2>Archive waits, transition charges, and IA access fees</H2>
+      <UL
+        items={[
+          <>
+            <strong>Archive class:</strong> the coldest EFS tier — first-byte
+            latencies stretch into <strong>hours</strong>, matching Glacier
+            Flexible semantics for file data. Reads that need minutes belong
+            in IA, not Archive.
+          </>,
+          <>
+            <strong>Lifecycle transitions bill per file</strong> (a small
+            transition request fee): millions of tiny files transitioning
+            monthly can cost more in transitions than the storage saved —
+            aggregate or exclude tiny-file prefixes.
+          </>,
+          <>
+            <strong>IA access fees:</strong> every read/write against an IA
+            file bills per GB on top of storage. A “cold” prefix that turns
+            out to be read weekly belongs back in Standard — the exam probes
+            this as “lifecycle policy is losing money” scenarios.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -419,6 +517,31 @@ export function Lesson415() {
         pattern → a lifecycle rule fixes it → Storage Lens confirms the
         saving. That loop is the remembering device for all four tools.
       </Callout>
+
+      <H2>Backup cost decomposition and advanced visibility</H2>
+      <UL
+        items={[
+          <>
+            <strong>Backup cost decomposition:</strong> AWS Backup bills
+            storage (warm vs cold tiers), plus restore operations and
+            cross-Region transfer. Cutting retention from 90 to 30 days is
+            often the single biggest lever — restore drills are cheap;
+            hoarding restore points is not.
+          </>,
+          <>
+            <strong>Storage Lens advanced metrics:</strong> the paid tier
+            adds activity metrics (which buckets are actually read), prefix
+            aggregation, and longer history — the difference between “how
+            much” and “what’s hot vs dead weight.”
+          </>,
+          <>
+            <strong>Inventory → S3 Batch Operations:</strong> Inventory CSVs
+            feed Batch manifests directly — copy a million objects to a new
+            class, apply tags, or invoke Lambda per object at scale. The
+            exam pairs them as one pipeline.
+          </>,
+        ]}
+      />
     </>
   );
 }

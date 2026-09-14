@@ -1,4 +1,4 @@
-import { Callout, H2, KeyTable, Lead, P, UL } from "@/components/lesson/blocks";
+import { Callout, Code, H2, KeyTable, Lead, UL } from "@/components/lesson/blocks";
 
 /** Section 3.5 lessons — data ingestion and transformation. Original content. */
 
@@ -53,6 +53,49 @@ export function Lesson351() {
         ]}
       />
 
+      <H2>Buffering, retention, replay — the numbers that decide</H2>
+      <UL
+        items={[
+          <>
+            <strong>Firehose buffer hints</strong> control delivery: buffer
+            size (1–128 MiB for S3, up to 100 MiB for Redshift) and buffer
+            interval (60–900 seconds). Whichever threshold hits first
+            triggers delivery — tune larger buffers for cost, smaller for
+            latency.
+          </>,
+          <>
+            <strong>Data Streams retention</strong> defaults to 24 hours and
+            extends to 7 days (farther with long-term retention) — the replay
+            window for reprocessing or backfill.
+          </>,
+          <>
+            <strong>Enhanced fan-out</strong> gives each registered consumer
+            2 MiB/s per shard with ~70 ms latency; without it, all consumers
+            share the shard’s 2 MiB/s read throughput.
+          </>,
+        ]}
+      />
+
+      <H2>Consuming with the Kinesis Client Library</H2>
+      <UL
+        items={[
+          <>
+            The <strong>KCL</strong> handles shard-to-worker assignment,
+            load balancing across fleet members, and{" "}
+            <strong>checkpointing</strong> progress to DynamoDB.
+          </>,
+          <>
+            <strong>Checkpoints</strong> mark the last processed sequence
+            number — restarts resume from the checkpoint, not from the
+            stream’s start.
+          </>,
+          <>
+            Resharding (split/merge) redistributes keys; consumers using the
+            KCL pick up the new shard topology automatically.
+          </>,
+        ]}
+      />
+
       <H2>Data Analytics and Video Streams</H2>
       <UL
         items={[
@@ -64,6 +107,12 @@ export function Lesson351() {
           <>
             <strong>Kinesis Video Streams</strong>: ingest, store, and
             playback device video/audio for media pipelines and ML vision.
+          </>,
+          <>
+            Flink operates on <strong>event time vs processing time</strong>{" "}
+            semantics with <strong>watermarks</strong> tracking lateness —
+            tumbling, sliding, and session windows define “what counts as one
+            computation.”
           </>,
         ]}
       />
@@ -145,6 +194,28 @@ export function Lesson352() {
           </>,
         ]}
       />
+
+      <H2>MSK auth, storage, and mirroring — the tested details</H2>
+      <UL
+        items={[
+          <>
+            <strong>Authentication:</strong> SASL/SCRAM (stored in Secrets
+            Manager), mutual TLS, and <strong>IAM access control</strong> —
+            IAM lets MSK API actions and Kafka operations share one identity
+            system.
+          </>,
+          <>
+            <strong>Storage:</strong> EBS-backed brokers with provisioned
+            volume sizes; <strong>tiered storage</strong> offloads older
+            segments to S3, extending retention without paying for EBS.
+          </>,
+          <>
+            <strong>Mirroring with MirrorMaker 2:</strong> replicate topics
+            between clusters (active-passive DR, aggregation, migration)
+            with offset translation and topic renaming controls.
+          </>,
+        ]}
+      />
       <Callout type="exam">
         The word <strong>“Kafka”</strong> in the requirement (existing
         workloads, Kafka Connect, exactly the Kafka ecosystem) → MSK. A new
@@ -179,6 +250,11 @@ export function Lesson353() {
             DPU-second; auto-generated scripts; interactive sessions.
           </>,
           <>
+            <strong>Job types that get tested:</strong> Spark ETL jobs,
+            Python shell jobs (lightweight, no Spark cluster, single DPU),
+            and streaming ETL for continuous micro-batch ingestion.
+          </>,
+          <>
             <strong>Data Catalog:</strong> central metadata store crawlers
             populate — Athena, Redshift Spectrum, EMR all query through it.
           </>,
@@ -206,9 +282,14 @@ export function Lesson353() {
             full framework control, custom versions, EC2 or EKS compute.
           </>,
           <>
+            <strong>Node types:</strong> primary (HDFS NameNode, runs
+            24/7), core (HDFS DataNodes, also runs 24/7 — don’t Spot these),
+            <strong>task nodes</strong> (compute-only, safe for Spot, come
+            and go). Spot belongs on task nodes; core nodes need stability.
+          </>,
+          <>
             <strong>Cost levers:</strong> Spot for task nodes, managed
-            scaling, auto-termination, EC2 capacity blocks? — Spot + reserved
-            for core.
+            scaling, auto-termination, reserved for core.
           </>,
           <>
             <strong>EMR Serverless:</strong> run Spark/Hive jobs without
@@ -312,6 +393,29 @@ export function Lesson354() {
           <>
             Typical chain: devices → IoT Core → Rules → IoT Analytics /
             DynamoDB / Firehose.
+          </>,
+        ]}
+      />
+
+      <H2>Fleet Indexing, Defender, and Greengrass versions</H2>
+      <UL
+        items={[
+          <>
+            <strong>Fleet Indexing</strong> aggregates device registry,
+            shadow, and connectivity data into a queryable index — “find all
+            devices with firmware older than X” without scanning shadows one
+            by one.
+          </>,
+          <>
+            <strong>IoT Device Defender:</strong> audits fleet security
+            posture (certificates, policies, open ports) and monitors
+            behavior anomalies from device-side metrics.
+          </>,
+          <>
+            <strong>Greengrass v1 vs v2:</strong> v1 deploys Lambda
+            functions to groups of devices; v2 adds a component model with
+            versioned deployments, local CLI tooling, and Docker/container
+            support. New designs target v2.
           </>,
         ]}
       />
@@ -420,6 +524,35 @@ export function Lesson355() {
           ["Partners upload via SFTP to S3", "Transfer Family"],
           ["100 TB offline, poor connectivity", "Snowball Edge"],
           ["Oracle → Aurora with minimal downtime", "DMS (+ SCT for schema)"],
+        ]}
+      />
+
+      <H2>CLI vs SDK transfers and the bandwidth heuristic</H2>
+      <UL
+        items={[
+          <>
+            <strong>AWS CLI</strong> <Code>aws s3 sync/cp</Code> handles
+            multipart, retries, and parallel transfers automatically — the
+            default human and script answer for interactive or scheduled
+            moves.
+          </>,
+          <>
+            <strong>Application SDK transfers</strong> (TransferManager /
+            high-level APIs) add the same parallelism inside application
+            code for generated content, uploads from users, and custom
+            retry/progress handling.
+          </>,
+          <>
+            <strong>Bandwidth heuristic:</strong> estimate total bytes ÷
+            available throughput — if the transfer takes days, optimize
+            (multipart, parallelism, Acceleration); if it takes weeks,
+            ship a Snow device instead.
+          </>,
+          <>
+            <strong>S3 Transfer Acceleration</strong> helps only when the
+            bottleneck is long-haul internet distance, not local bandwidth
+            or disk — test which end constrains the transfer first.
+          </>,
         ]}
       />
       <Callout type="exam">

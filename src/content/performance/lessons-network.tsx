@@ -1,4 +1,5 @@
-import { Callout, H2, KeyTable, Lead, P, UL } from "@/components/lesson/blocks";
+import { Callout, Diagram, H2, KeyTable, Lead, P, UL } from "@/components/lesson/blocks";
+import { AzSpreadDiagram, CloudFrontFlowDiagram, DnsHealthRoutingDiagram, HybridConnectivityDiagram, TgwRoutingDiagram } from "@/components/lesson/diagrams-3-4";
 
 /** Section 3.4 lessons — network performance. Original content. */
 
@@ -84,6 +85,30 @@ export function Lesson341() {
         trade-off</em> — and remember cross-AZ traffic is the cost lever the
         billing questions test.
       </Callout>
+
+      <Diagram title="The AZ-spread layout" caption="Per-AZ NAT, per-AZ tiers, endpoints instead of internet — the full private-subnet pattern.">
+        <AzSpreadDiagram />
+      </Diagram>
+
+      <H2>VPC limits that shape the design</H2>
+      <UL
+        items={[
+          <>
+            <strong>5 VPCs per Region</strong> by default (requestable
+            increase) — multi-account strategies exist partly because one
+            account’s VPC quota runs out.
+          </>,
+          <>
+            <strong>200 subnets, ~5,000 route tables per Region</strong> —
+            plan route-table sprawl before building a per-subnet topology.
+          </>,
+          <>
+            <strong>~16,383 secondary IPs per ENI family class</strong> on
+            large instances — container density on awsvpc networking rides on
+            this number.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -163,6 +188,57 @@ export function Lesson342() {
         reach public AWS endpoints without the internet — knowing the VIF
         types answers several option distractors.
       </Callout>
+
+      <Diagram title="Hybrid connectivity options" caption="VPN for speed of setup, DX for consistency, DX+VPN for resilient compliance.">
+        <HybridConnectivityDiagram />
+      </Diagram>
+
+      <H2>VIF types and the DX Gateway in detail</H2>
+      <UL
+        items={[
+          <>
+            <strong>Private VIF:</strong> one VLAN to one VPC (or via DX
+            Gateway, to VPCs in many Regions) — the database-replication and
+            private-API path.
+          </>,
+          <>
+            <strong>Public VIF:</strong> on-premises reaches S3, DynamoDB,
+            and other public AWS endpoints over the private DX — no internet
+            traversal, lower transfer pricing than VPN.
+          </>,
+          <>
+            <strong>Transit VIF:</strong> attaches DX to a Transit Gateway
+            for site-to-many-VPC routing — the hub answer for multiple
+            VPCs.
+          </>,
+          <>
+            <strong>DX Gateway:</strong> associates one DX connection with
+            VPCs in multiple Regions — one port, global reach (with
+            per-Region VGW/TGW attachments).
+          </>,
+        ]}
+      />
+
+      <H2>VPN throughput and failover mechanics</H2>
+      <UL
+        items={[
+          <>
+            Each Site-to-Site connection provisions <strong>two tunnels in
+            different AZs</strong>; enable <strong>ECMP</strong> with BGP so
+            both carry traffic (~2.5 Gbps aggregate) and fail over
+            automatically.
+          </>,
+          <>
+            <strong>Accelerated VPN</strong> routes tunnel traffic through
+            the Global Accelerator edge — better performance over long
+            distances without DX.
+          </>,
+          <>
+            Tunnel auth: pre-shared keys or certificates; DPD detects dead
+            peers and triggers failover to the surviving tunnel.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -219,6 +295,56 @@ export function Lesson343() {
         peer-VPC rules must use CIDRs (or prefix lists), a detail that decides
         several “will this rule work?” questions.
       </Callout>
+
+      <Diagram title="Transit Gateway route table design" caption="Isolation lives in the association + propagation choices, not a firewall.">
+        <TgwRoutingDiagram />
+      </Diagram>
+
+      <H2>Transit Gateway mechanics that get tested</H2>
+      <UL
+        items={[
+          <>
+            <strong>Attachments</strong> (VPC, VPN, DX Gateway, peering,
+            Connect) associate with one route table and propagate into chosen
+            tables — association answers “where do my packets go,”
+            propagation answers “who learns my routes.”
+          </>,
+          <>
+            <strong>Blackhole routes</strong> drop traffic explicitly — the
+            deny rule of TGW design.
+          </>,
+          <>
+            <strong>MTU 8500</strong> across TGW (jumbo support minus
+            overhead) and up to <strong>50 Gbps per AZ</strong> per
+            attachment scaling with burst.
+          </>,
+          <>
+            <strong>Inter-Region peering</strong> links TGWs with encrypted
+            AWS-backbone transit — global hub-and-spoke without hairpinning.
+          </>,
+        ]}
+      />
+
+      <H2>Peering limits and PrivateLink depth</H2>
+      <UL
+        items={[
+          <>
+            <strong>Peering caps:</strong> 125 active peerings per VPC
+            (requestable); <strong>no transitive routing</strong> —
+            overlapping CIDRs block peering entirely.
+          </>,
+          <>
+            <strong>PrivateLink detail:</strong> endpoint services front NLBs;
+            consumers create interface endpoints; acceptance can require
+            manual approval; cross-Region requires per-Region NLBs.
+          </>,
+          <>
+            <strong>PrivateLink + NLB + TLS:</strong> terminate TLS at the
+            consumer’s ALB or carry it end-to-end — the “private service
+            with HTTPS” answer.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -295,6 +421,56 @@ export function Lesson344() {
         use versioned filenames. <strong>“slow first-byte on cache
         misses”</strong> → Origin Shield again.
       </Callout>
+
+      <Diagram title="CloudFront cache and edge compute flow" caption="Edge cache → Shield → origin, with edge functions on the request path and signed access at the door.">
+        <CloudFrontFlowDiagram />
+      </Diagram>
+
+      <H2>Lambda@Edge vs CloudFront Functions</H2>
+      <KeyTable
+        head={["", "CloudFront Functions", "Lambda@Edge"]}
+        rows={[
+          ["Runs at", "Viewer request/response only (216 edge locations)", "Viewer + origin request/response (fewer Regions)"],
+          ["Runtime/limits", "JavaScript, sub-ms, tiny packages", "Node.js/Python, up to 30s network-bound origins"],
+          ["Use for", "URL rewrites, header adds, simple redirects", "Auth at edge, request signing, origin failover logic, heavy transforms"],
+          ["Cost/latency", "Cheapest, fastest", "More expensive, slightly slower"],
+        ]}
+      />
+
+      <H2>Origin access and authorized delivery</H2>
+      <UL
+        items={[
+          <>
+            <strong>Origin Access Control (OAC):</strong> CloudFront signs
+            requests to S3 — bucket policy grants only the distribution,
+            bucket stays private. (Legacy OAI is replaced by OAC.)
+          </>,
+          <>
+            <strong>Signed URLs and signed cookies:</strong> time-boxed
+            access with optional IP restrictions — per-object links vs
+            whole-path cookies after login.
+          </>,
+          <>
+            <strong>Field-level encryption:</strong> sensitive form fields
+            stay encrypted at the edge until the origin decrypts with its
+            private key.
+          </>,
+        ]}
+      />
+
+      <H2>Logging: standard vs real-time</H2>
+      <UL
+        items={[
+          <>
+            <strong>Standard logs:</strong> delivered to S3, batched and
+            delayed minutes — billing/analysis use.
+          </>,
+          <>
+            <strong>Real-time logs:</strong> stream to Kinesis within
+            seconds, sampled by percentage — live debugging and alerting.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -365,6 +541,52 @@ export function Lesson345() {
         — “unhealthy Region drops out automatically.” And the recurring
         distractor: geolocation ≠ latency (policy vs measurement).
       </Callout>
+
+      <Diagram title="Latency routing with health-driven failover" caption="The resolver picks the fastest healthy record; TTLs bound the switch speed.">
+        <DnsHealthRoutingDiagram />
+      </Diagram>
+
+      <H2>Resolver endpoints — hybrid DNS both directions</H2>
+      <UL
+        items={[
+          <>
+            <strong>Inbound endpoints:</strong> ENIs in the VPC that answer
+            on-premises DNS queries forwarded over DX/VPN — hybrid resolvers
+            point conditional forwarders at these IPs.
+          </>,
+          <>
+            <strong>Outbound endpoints:</strong> forward VPC queries matching
+            rules (e.g., corp.example.com) to on-premises resolvers — the
+            reverse path.
+          </>,
+          <>
+            <strong>Query logging</strong> to S3/CloudWatch for audit and
+            threat-hunting the DNS layer.
+          </>,
+        ]}
+      />
+
+      <H2>Alias records and health check tuning</H2>
+      <UL
+        items={[
+          <>
+            <strong>Alias A/AAAA</strong> records map directly to AWS
+            resources (ALB, CloudFront, S3 website) — no extra lookup, no
+            charge, and the only way to put AWS targets at a zone apex
+            (CNAMEs are illegal there).
+          </>,
+          <>
+            <strong>Health check intervals:</strong> 30s standard, 10s fast;
+            failure threshold typically 3 consecutive — tune faster for
+            active/active, slower to avoid flapping.
+          </>,
+          <>
+            <strong>String matching</strong> on HTTP bodies plus status codes
+            defines “healthy” precisely; latency-based checks can route on
+            measured performance.
+          </>,
+        ]}
+      />
     </>
   );
 }

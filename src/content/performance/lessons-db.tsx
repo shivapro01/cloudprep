@@ -65,6 +65,48 @@ export function Lesson331() {
           </>,
         ]}
       />
+
+      <H2>RDS storage types — the missing detail</H2>
+      <UL
+        items={[
+          <>
+            <strong>gp3:</strong> baseline 3,000 IOPS and 125 MB/s
+            independent of size, provisionable to 16,000 IOPS — the default
+            for new workloads. Same price-performance story as EBS: decouple
+            IOPS from GiBs.
+          </>,
+          <>
+            <strong>io1/io2:</strong> provision up to 256,000 IOPS for
+            latency-critical databases where gp3 caps out. Priciest per
+            IOPS — provision only measured need.
+          </>,
+          <>
+            <strong>Storage autoscaling:</strong> grows allocated storage
+            automatically when free space falls below threshold (free for
+            the operation itself) — its ceiling is set by max allocated
+            storage, which you still choose.
+          </>,
+        ]}
+      />
+
+      <H2>Replica rules that trip people up</H2>
+      <UL
+        items={[
+          <>
+            MySQL/PostgreSQL: <strong>up to 15 read replicas per source</strong>;
+            replica promotion creates a standalone instance — not a
+            converted primary.
+          </>,
+          <>
+            Read replicas have their own endpoints; Multi-AZ standby has
+            none (it’s invisible, only for failover).
+          </>,
+          <>
+            Cross-Region replicas lag more than same-Region — factor the lag
+            into DR RPO expectations.
+          </>,
+        ]}
+      />
       <Callout type="exam">
         Symptom → lever: <strong>“too many open connections from
         serverless”</strong> → RDS Proxy. <strong>“reporting queries slow
@@ -111,6 +153,55 @@ export function Lesson332() {
           <>
             <strong>I/O-Optimized:</strong> predictable pricing for
             I/O-intensive clusters (no I/O charges, higher instance rate).
+          </>,
+        ]}
+      />
+
+      <H2>Endpoint types — cluster, reader, custom, instance</H2>
+      <UL
+        items={[
+          <>
+            <strong>Cluster (writer) endpoint:</strong> always points at the
+            current primary — use it for writes and for read-after-write
+            consistency.
+          </>,
+          <>
+            <strong>Reader endpoint:</strong> load-balances connections
+            across available replicas — fluctuating membership is normal as
+            Aurora adds/removes replicas.
+          </>,
+          <>
+            <strong>Custom endpoints:</strong> pin a stable hostname to a
+            subset of instances (e.g., reporting-only replicas) so workload
+            isolation survives scaling events.
+          </>,
+          <>
+            <strong>Instance endpoints:</strong> direct per-instance
+            addresses — testing and per-node diagnostics, not steady-state
+            application traffic.
+          </>,
+        ]}
+      />
+
+      <H2>Failover numbers and Serverless v2 ACUs</H2>
+      <UL
+        items={[
+          <>
+            <strong>Aurora failover</strong> typically completes in under 35
+            seconds to a promoted replica — versus ~60–120 seconds for RDS
+            Multi-AZ DNS-based failover. The reader endpoint re-resolves
+            automatically.
+          </>,
+          <>
+            <strong>Serverless v2 ACUs</strong> scale in 0.5-ACU steps from
+            as low as 0.5; each ACU is roughly 2 GiB RAM with proportional
+            CPU/network — set min/max capacity so the floor covers idle and
+            the ceiling covers peaks.
+          </>,
+          <>
+            <strong>Aurora global database:</strong> secondary Regions lag
+            under a second typically; switchover completes in about a
+            minute with zero data loss for planned events.
           </>,
         ]}
       />
@@ -203,6 +294,48 @@ export function Lesson333() {
         is not a general PITR substitute (that’s continuous backups, up to 35
         days, restoring to a <em>new</em> cluster).
       </Callout>
+
+      <H2>PITR and snapshot mechanics that get tested</H2>
+      <UL
+        items={[
+          <>
+            <strong>Continuous backups (PITR):</strong> retain 1–35 days
+            (configurable); restore to any second within the window creates
+            a <em>new</em> cluster — the original stays untouched.
+          </>,
+          <>
+            <strong>Snapshot → restore flow:</strong> manual snapshots persist
+            until deleted; automated snapshots live only with their source
+            retention setting; restoring always lands on a fresh cluster
+            (then swap endpoints or rename).
+          </>,
+          <>
+            <strong>Copying snapshots cross-Region/account</strong> shares
+            the encrypted data with the destination’s KMS key — the standard
+            DR and migration path.
+          </>,
+        ]}
+      />
+
+      <H2>Zero-ETL scope beyond the slogan</H2>
+      <UL
+        items={[
+          <>
+            Currently: Aurora MySQL/PostgreSQL → Redshift, plus DynamoDB →
+            OpenSearch integrations. New sources are added over time — answer
+            from the requirement, not a fixed vendor list.
+          </>,
+          <>
+            Replaces DMS full-load-plus-CDC pipelines for operational-to-
+            analytical replication where the destination is supported.
+          </>,
+          <>
+            <strong>Not</strong> a substitute for cross-Region DR (no
+            promotion model) or for point-in-time undo (that’s
+            backtrack/PITR).
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -267,6 +400,38 @@ export function Lesson334() {
           </>,
         ]}
       />
+
+      <H2>GSI vs LSI — the rules that decide</H2>
+      <KeyTable
+        head={["Rule", "GSI (global secondary index)", "LSI (local secondary index)"]}
+        rows={[
+          ["Partition key", "Can differ from the table’s", "Must share the table’s partition key"],
+          ["When created", "Anytime", "Only at table creation"],
+          ["Count per table", "Up to 20", "Up to 5"],
+          ["Consistency", "Eventually consistent only", "Strongly or eventually consistent"],
+          ["Choose when", "Alternate lookup key (email, status)", "Same-partition alternate sort (created-at within a user)"],
+        ]}
+      />
+
+      <H2>Streams views and TTL mechanics</H2>
+      <UL
+        items={[
+          <>
+            Stream <strong>view types</strong> decide the payload: KEYS_ONLY,
+            NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES — consumers needing
+            before/after diffs require the OLD variants.
+          </>,
+          <>
+            <strong>TTL:</strong> expired items are deleted in the background
+            (typically within hours, not instantly); TTL-flagged deletions
+            still appear in streams when the stream is enabled.
+          </>,
+          <>
+            TTL deletions cost no write throughput — the exam’s cheapest
+            cleanup answer for sessions and ephemeral records.
+          </>,
+        ]}
+      />
       <Callout type="exam">
         “Throttling on one partition while others are idle” → hot key →
         sharding or key redesign. “Look up users by email but the key is
@@ -327,6 +492,28 @@ export function Lesson335() {
             Choose DAX over ElastiCache when you want DynamoDB API
             compatibility and minimal code change; ElastiCache when you need
             richer cache structures or cross-engine caching.
+          </>,
+        ]}
+      />
+
+      <H2>DAX limits, on-demand throttling, transactions</H2>
+      <UL
+        items={[
+          <>
+            <strong>Cold cache:</strong> first reads miss and hit the table
+            at normal latency — warm the cache or accept the ramp; negative
+            caching can be tuned where misses dominate.
+          </>,
+          <>
+            <strong>On-demand throttling</strong> still applies per-key
+            limits (reads ~12,000, writes ~1,000 RCU/WCU per key per
+            second); spikes beyond that throttle regardless of mode — DAX
+            absorbs read spikes, not write floods.
+          </>,
+          <>
+            <strong>Transactions</strong> cap at 25 items (or 4 MB) per
+            TransactWriteItems/TransactGetItems call and cannot span Regions
+            — design atomic units under that ceiling.
           </>,
         ]}
       />
@@ -398,6 +585,28 @@ export function Lesson336() {
           ["Huge read load, writes rare", "Lazy loading + long TTL + pre-warming"],
         ]}
       />
+
+      <H2>Sizing and engine mechanics that get tested</H2>
+      <UL
+        items={[
+          <>
+            <strong>Memcached auto-discovery:</strong> clients fetch the node
+            list from a configuration endpoint and hash keys across nodes
+            themselves — adding nodes doesn’t rebalance existing keys.
+          </>,
+          <>
+            <strong>Redis cluster mode:</strong> data shards across up to
+            500 shards with replicas per shard; some commands don’t work
+            across slots (multi-key ops need hashtagged keys).
+          </>,
+          <>
+            <strong>Cache sizing rule:</strong> size for peak working set
+            plus headroom — evictions under pressure show up as rising
+            misses; scale out or enable data tiering (r6gd nodes) before
+            misses hit the database.
+          </>,
+        ]}
+      />
       <Callout type="exam">
         “Reduce database load for a read-heavy catalog” → ElastiCache lazy
         loading. “Session store, fast, TTL eviction” → ElastiCache Redis.
@@ -452,6 +661,33 @@ export function Lesson337() {
         <strong>workload management (WLM)</strong> queues so analytics never
         blocks operational reporting — a classic performance answer.
       </Callout>
+
+      <H2>Distribution styles, sort keys, WLM, scaling credits</H2>
+      <UL
+        items={[
+          <>
+            <strong>Distribution styles:</strong> KEY (co-locate joins on
+            the join key), ALL (replicate small dimensions to every node),
+            EVEN (round-robin when no join pattern dominates), AUTO
+            (Redshift chooses with automatic optimization).
+          </>,
+          <>
+            <strong>Sort keys:</strong> compound (ordered columns for range
+            filters) vs interleaved (equal weight for multiple filter
+            dimensions) — picks which queries skip blocks via zone maps.
+          </>,
+          <>
+            <strong>WLM queues:</strong> separate queues for ETL vs
+            dashboards with memory percentages and concurrency slots; short
+            query acceleration (SQA) prioritizes quick queries automatically.
+          </>,
+          <>
+            <strong>Concurrency scaling credits:</strong> one free hour per
+            day per cluster of scaling-cluster time accumulates (up to a
+            cap) — bursts beyond the credit balance bill per second.
+          </>,
+        ]}
+      />
 
       <H2>OpenSearch — search and logs</H2>
       <UL
@@ -525,6 +761,35 @@ export function Lesson338() {
         Timestream), tamper-proof audit without external tooling (QLDB), and
         MongoDB semantics without managing replicasets (DocumentDB).
       </P>
+
+      <H2>Engine details that get tested</H2>
+      <UL
+        items={[
+          <>
+            <strong>Neptune engine choice:</strong> property graph (Gremlin /
+            openCypher) vs RDF/SPARQL — pick by query language and tooling,
+            storage and HA are the same underneath.
+          </>,
+          <>
+            <strong>Keyspaces CQL limits:</strong> a subset of Cassandra CQL
+            — no UDTs in some versions, no ALLOW FILTERING reliance, use the
+            documented supported operations; multi-Region replication is
+            native.
+          </>,
+          <>
+            <strong>Timestream tiers:</strong> memory store (hot, fast, $$)
+            vs magnetic store (warm, cheap); scheduled queries and
+            interpolation fill gaps; retention policies move data between
+            tiers automatically.
+          </>,
+          <>
+            <strong>RDS Custom use cases:</strong> Oracle/SQL Server options
+            needing OS access (custom patches, third-party agents, specific
+            file layouts) with managed backups/patching paused around
+            customizations — self-managed EC2 is the only alternative.
+          </>,
+        ]}
+      />
       <UL
         items={[
           <>

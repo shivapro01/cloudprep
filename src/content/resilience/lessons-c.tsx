@@ -68,6 +68,29 @@ export function Lesson221() {
         is precise about this: “an AZ becomes unavailable” → multi-AZ
         answers; “a Region becomes unavailable” → multi-Region answers.
       </P>
+
+      <H2>Container recovery: ECS and EKS failure behavior</H2>
+      <UL
+        items={[
+          <>
+            <strong>ECS services</strong> reschedule failed tasks
+            automatically; the service scheduler replaces unhealthy tasks and
+            re-registers them with the target group — set minimum healthy
+            percent so replacements never drop capacity.
+          </>,
+          <>
+            <strong>EKS pods</strong> restart via Deployments/ReplicaSets,
+            but node failures need the <strong>Cluster Autoscaler or
+            Karpenter</strong> to replace nodes — pod anti-affinity across
+            AZs keeps one zone failure from evicting everything.
+          </>,
+          <>
+            <strong>Stateful containers:</strong> EBS/EFS volumes reattach
+            only in the same AZ — spread stateful sets across AZs with
+            per-AZ storage or accept the AZ-coupling.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -370,6 +393,25 @@ export function Lesson225() {
           </>,
         ]}
       />
+
+      <H2>Replication Time Control — the SLA behind CRR</H2>
+      <UL
+        items={[
+          <>
+            <strong>S3 Replication Time Control (RTC)</strong> backs
+            replication with an SLA: 99.99% of objects replicate within 15
+            minutes, with metrics and event notifications tracking the rest.
+          </>,
+          <>
+            Without RTC, CRR is best-effort with no time bound — “guaranteed
+            replication within 15 minutes” requires RTC explicitly.
+          </>,
+          <>
+            RTC costs extra per GB replicated; event notifications fire on
+            replication completion <em>and</em> on threshold breaches.
+          </>,
+        ]}
+      />
       <Callout type="exam">
         The conflict-semantics question is a regular: <strong>“both Regions
         accept writes; conflicts resolve to the most recent write”</strong> →
@@ -447,6 +489,27 @@ export function Lesson226() {
         <strong>Global Accelerator</strong> or <strong>ARC</strong> moves
         traffic at the network layer.
       </Callout>
+
+      <H2>Resolver DNS failover for hybrid networks</H2>
+      <UL
+        items={[
+          <>
+            <strong>Route 53 Resolver endpoints</strong> extend DNS failover
+            into hybrid networks: inbound endpoints answer on-premises
+            queries, outbound endpoints forward cloud queries out — both
+            with health-checked conditional forwarding.
+          </>,
+          <>
+            On-premises resolvers forward to inbound endpoints; Resolver
+            rules on the outbound side steer VPC queries per domain — a
+            split-horizon design where each side owns its zones.
+          </>,
+          <>
+            Query logging on both endpoints feeds the same audit trail as
+            public DNS — “who resolved what, when” works hybrid too.
+          </>,
+        ]}
+      />
     </>
   );
 }

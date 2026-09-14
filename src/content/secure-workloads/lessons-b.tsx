@@ -61,6 +61,27 @@ export function Lesson125() {
         deletes, encrypts, or blocks anything. Answers claiming Macie
         “prevents” uploads or “encrypts” findings are distractors.
       </Callout>
+
+      <H2>Allow lists — teaching Macie your own data</H2>
+      <UL
+        items={[
+          <>
+            <strong>Custom allow lists</strong> hold regexes and exact values
+            for house-specific sensitive formats (employee IDs, internal
+            account numbers) that managed identifiers don’t cover.
+          </>,
+          <>
+            Allow lists attach to discovery jobs and automated discovery —
+            matches raise findings with <em>your</em> labels, so triage
+            speaks the company’s language.
+          </>,
+          <>
+            The flip side exists too: <strong>custom data identifiers</strong>{" "}
+            with allow-list scoping reduce false positives by excluding known
+            test patterns from managed-identifier matches.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -202,6 +223,29 @@ export function Lesson127() {
         <strong>“stateful instance-level port rules”</strong> → security
         groups.
       </Callout>
+
+      <H2>Suricata rule actions — pass, drop, alert, reject</H2>
+      <UL
+        items={[
+          <>
+            Stateful rule groups use Suricata syntax with explicit actions:{" "}
+            <strong>pass</strong> (allow through), <strong>drop</strong>{" "}
+            (silently discard), <strong>alert</strong> (allow + log), and{" "}
+            <strong>reject</strong> (discard + send RST/ICMP back).
+          </>,
+          <>
+            <strong>Reject vs drop</strong> is the exam’s favorite nuance:
+            drop is invisible to the sender (timeouts), reject tells the
+            sender the connection is refused. Use drop for stealth against
+            scanners, reject for fast-failing legitimate clients.
+          </>,
+          <>
+            Rule <strong>ordering within the group</strong> follows
+            Suricata semantics — first match wins, so place narrow
+            pass-rules before broad drop-rules.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -268,6 +312,28 @@ export function Lesson128() {
         “per resource in each account manually” fail the future-resources test
         every time.
       </Callout>
+
+      <H2>Remediation actions — what FMS does about drift</H2>
+      <UL
+        items={[
+          <>
+            Detecting a non-compliant resource is only half the job: Firewall
+            Manager policies carry <strong>remediation actions</strong> that
+            auto-apply the protection (attach the web ACL, associate the
+            security group, enable the firewall) instead of just reporting.
+          </>,
+          <>
+            Remediation runs on a schedule plus on resource-creation events —
+            new resources get protected within minutes, not at the next
+            audit.
+          </>,
+          <>
+            Resources that <em>can’t</em> be remediated (deleted protection,
+            unsupported type) surface as compliance violations for human
+            follow-up — automation plus an exception queue.
+          </>,
+        ]}
+      />
     </>
   );
 }

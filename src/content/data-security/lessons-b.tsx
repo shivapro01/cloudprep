@@ -74,6 +74,28 @@ export function Lesson135() {
         <strong>“expose an internal app to another account without peering”</strong>{" "}
         → PrivateLink endpoint service.
       </Callout>
+
+      <H2>Endpoint policies in practice</H2>
+      <UL
+        items={[
+          <>
+            A gateway endpoint policy can allow <Code>s3:GetObject</Code> on
+            one bucket while denying everything else — the VPC’s S3 access
+            becomes a closed list even for otherwise-permissive roles.
+          </>,
+          <>
+            Interface endpoint policies similarly scope KMS or Secrets
+            Manager calls (e.g., allow Decrypt only on specific key ARNs),
+            so a compromised instance can’t wander the service.
+          </>,
+          <>
+            Endpoint policies combine with identity policies by intersection:
+            the effective permission is what <em>both</em> allow — the
+            exam’s “why is this denied despite the IAM policy” answer when
+            an endpoint policy is the hidden ceiling.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -141,6 +163,27 @@ export function Lesson136() {
         requests with weaker identity context. Only CloudTrail data events are
         the authoritative “who did this API action” record.
       </Callout>
+
+      <H2>CloudTrail Lake — queryable audit storage</H2>
+      <UL
+        items={[
+          <>
+            <strong>CloudTrail Lake</strong> stores events in an immutable,
+            queryable event data store (up to 7 years retention) with
+            built-in SQL — no S3 + Athena plumbing required.
+          </>,
+          <>
+            <strong>Event data stores</strong> can additionally ingest
+            activity events from outside AWS and Config configuration items,
+            unifying audit sources in one query surface.
+          </>,
+          <>
+            Choose Lake when the requirement is “query years of audit
+            history with SQL”; keep the S3 + Athena pattern when existing
+            pipelines or cross-tool access already exists.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -215,6 +258,27 @@ export function Lesson137() {
         Analyzer. <strong>“verify the whole network matches policy”</strong> →
         Network Access Analyzer.
       </Callout>
+
+      <H2>Mirror session limits and filters</H2>
+      <UL
+        items={[
+          <>
+            A <strong>mirror session</strong> binds one source (ENI) to one
+            target with a session number and VNI; an ENI supports a small
+            number of concurrent sessions — plan one session per inspection
+            use case.
+          </>,
+          <>
+            <strong>Mirror filters</strong> scope by protocol, port range,
+            and CIDR in both directions, so the appliance receives only
+            relevant traffic instead of a full firehose.
+          </>,
+          <>
+            Targets can be a single ENI or an NLB spreading load across a
+            fleet of appliances — the scale-out answer for heavy VPCs.
+          </>,
+        ]}
+      />
     </>
   );
 }
@@ -300,6 +364,28 @@ export function Lesson138() {
         appeared in earlier lessons — the exam presents the stack and asks you
         to name the missing piece.
       </P>
+
+      <H2>Dedicated Local Zones — residency with control</H2>
+      <UL
+        items={[
+          <>
+            <strong>Dedicated Local Zones</strong> (and Outposts) place AWS
+            infrastructure inside a customer-specified facility or metro —
+            data processed and stored there never leaves the premises for
+            the covered services.
+          </>,
+          <>
+            Unlike shared Local Zones, dedicated capacity is single-tenant:
+            noisy-neighbor and data-commingling objections disappear, which
+            is what regulated residency reviews actually ask about.
+          </>,
+          <>
+            Residency questions distinguish <em>where processing happens</em>{" "}
+            from <em>where control plane metadata lives</em> — account and
+            billing metadata still resides in the home Region.
+          </>,
+        ]}
+      />
     </>
   );
 }

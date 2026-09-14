@@ -101,6 +101,17 @@ export function Lesson117() {
         based on department attributes,” the answer is ABAC — tags on
         principals compared with tags on resources.
       </Callout>
+
+      <H2>Tag-key case sensitivity — the silent mismatch</H2>
+      <P>
+        Tag <strong>keys are case-sensitive</strong>: <Code>Team</Code> and{" "}
+        <Code>team</Code> are different keys. A condition comparing{" "}
+        <Code>aws:PrincipalTag/Team</Code> with{" "}
+        <Code>aws:ResourceTag/team</Code> never matches, and the request is
+        implicitly denied with no useful error. Standardize key casing in
+        the tagging policy and audit with Config rules that flag
+        miscapitalized keys.
+      </P>
     </>
   );
 }
@@ -284,6 +295,31 @@ export function Lesson119() {
         <Code>aws:PrincipalOrgID</Code>-style FullAWSAccess replacement),
         everything not explicitly allowed becomes denied — design deliberately.
       </Callout>
+
+      <H2>Organizations policy types beyond SCPs</H2>
+      <UL
+        items={[
+          <>
+            <strong>Service control policies (SCPs):</strong> ceilings on what
+            principals can do — the guardrail type the exam tests most.
+          </>,
+          <>
+            <strong>Tag policies:</strong> standardize tag keys, values, and
+            capitalization across accounts — the enforcement behind ABAC
+            key-casing discipline.
+          </>,
+          <>
+            <strong>Backup policies:</strong> centrally mandate AWS Backup
+            plans (vaults, retention, cross-account copies) for member
+            accounts.
+          </>,
+          <>
+            <strong>AI services opt-out policies:</strong> control whether
+            AWS AI services may store and use content — the compliance answer
+            for regulated data flowing through AI features.
+          </>,
+        ]}
+      />
     </>
   );
 }
